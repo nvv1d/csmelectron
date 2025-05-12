@@ -1,11 +1,10 @@
 const { app, BrowserWindow, session } = require('electron');
 const path = require('path');
 
-function createWindow() {
-  // Create the browser window with exact dimensions to match the demo
+async function createWindow() {
   const mainWindow = new BrowserWindow({
-    width: 691,  // Exact width from the demo image
-    height: 448, // Exact height from the demo image
+    width: 720,
+    height: 600,
     resizable: false,
     maximizable: false,
     fullscreenable: false,
@@ -14,66 +13,37 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
+      sandbox: true,
       preload: path.join(__dirname, 'preload.js'),
-      webviewTag: true,
-      zoomFactor: 1.0,
-      sandbox: false,
-      enableRemoteModule: false
     }
   });
 
-  // Ensure window cannot be resized or maximized
-  mainWindow.setMaximizable(false);
-  mainWindow.setResizable(false);
-
-  // Load the local HTML file
-  mainWindow.loadFile(path.join(__dirname, 'index.html'))
-    .catch(err => {
-      console.error('Failed to load HTML file:', err);
-    });
-
-  // Handle microphone and camera permissions globally
-  session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
-    // Automatically grant microphone, camera, and audio capture permissions
-    const allowedPermissions = [
-      'media', 
-      'mediaDevices', 
-      'mediaKeySystem', 
-      'openExternal',
-      'clipboard-read',
-      'clipboard-write'
-    ];
-    
-    if (allowedPermissions.includes(permission)) {
-      callback(true);
-    } else {
-      callback(false);
-    }
+  // Auto-grant media & clipboard permissions
+  session.defaultSession.setPermissionRequestHandler((_, perm, cb) => {
+    cb([
+      'media', 'mediaDevices', 'mediaKeySystem',
+      'openExternal', 'clipboard-read', 'clipboard-write'
+    ].includes(perm));
   });
+  session.defaultSession.setDevicePermissionHandler(details =>
+    details.deviceType === 'media'
+  );
 
-  // Additional microphone access configuration
-  session.defaultSession.setDevicePermissionHandler((details) => {
-    // Always allow microphone and camera access
-    if (details.deviceType === 'media') {
-      return true;
-    }
-    return false;
+  // Load the live demo URL directly
+  await mainWindow.loadURL(
+    'https://www.sesame.com/research/crossing_the_uncanny_valley_of_voice#demo'
+  );
+
+  // Prevent any navigation off “#demo”
+  mainWindow.webContents.on('will-navigate', (e, url) => {
+    if (!url.includes('#demo')) e.preventDefault();
   });
 }
 
-// This method will be called when Electron has finished
-// initialization and is ready to create browser windows.
-app.whenReady().then(() => {
-  createWindow();
-
-  app.on('activate', function () {
-    // On macOS it's common to re-create a window in the app when the
-    // dock icon is clicked and there are no other windows open.
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
-  });
+app.whenReady().then(createWindow);
+app.on('activate', () => {
+  if (BrowserWindow.getAllWindows().length === 0) createWindow();
 });
-
-// Quit when all windows are closed, except on macOS.
-app.on('window-all-closed', function () {
+app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
