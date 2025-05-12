@@ -6,7 +6,7 @@ async function createWindow() {
   Menu.setApplicationMenu(null);
   const mainWindow = new BrowserWindow({
     width: 720,
-    height: 600,
+    height: 530,
     resizable: false,
     maximizable: false,
     fullscreenable: false,
@@ -14,6 +14,8 @@ async function createWindow() {
     frame: false, // Remove window frame completely (no title bar or menu)
     titleBarStyle: 'hidden', // Hide the title bar but keep the window controls on macOS
     icon: path.join(__dirname, '../assets/ms-icon-256x256.png'), // Make sure this path is correct relative to main.js
+    show: false, // Start window hidden
+    backgroundColor: '#FFFFFF', // Set background color to white to prevent flash
     webPreferences: {
       nodeIntegration: false, // Good security practice
       contextIsolation: true, // Good security practice (default)
@@ -63,11 +65,11 @@ async function createWindow() {
   // Listen for ready-to-show to ensure window appears only when content is ready
   // Add a 5-second delay before showing the window
   mainWindow.once('ready-to-show', () => {
-    console.log('Window ready to show, applying 5 second delay...');
+    console.log('Window ready to show, applying 2 second delay...');
     setTimeout(() => {
       console.log('Delay complete, showing window now');
       mainWindow.show();
-    }, 5000); // 5000ms = 5 seconds
+    }, 2000); // 2000ms = 2 seconds
   });
   
   // Handle page load
@@ -141,12 +143,12 @@ async function createWindow() {
     }
   });
 
-    // Optional: Handle 'did-fail-load'
-    mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
-        console.error(`Failed to load URL: ${validatedURL} - Error ${errorCode}: ${errorDescription}`);
-        // You could load a local error page here
-        // mainWindow.loadFile('error.html');
-    });
+  // Optional: Handle 'did-fail-load'
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+      console.error(`Failed to load URL: ${validatedURL} - Error ${errorCode}: ${errorDescription}`);
+      // You could load a local error page here
+      // mainWindow.loadFile('error.html');
+  });
 }
 
 // --- App Lifecycle ---
