@@ -2,10 +2,10 @@ const { app, BrowserWindow, session } = require('electron');
 const path = require('path');
 
 function createWindow() {
-  // Create the browser window with exact dimensions
+  // Create the browser window with exact dimensions to match the demo
   const mainWindow = new BrowserWindow({
-    width: 800,  // Adjusted to match the demo section width
-    height: 600, // Adjusted to match the demo section height
+    width: 691,  // Exact width from the demo image
+    height: 448, // Exact height from the demo image
     resizable: false,
     maximizable: false,
     fullscreenable: false,
