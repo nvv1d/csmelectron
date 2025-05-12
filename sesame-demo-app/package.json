@@ -18,6 +18,9 @@
   ],
   "author": "Your Name",
   "license": "MIT",
+  "dependencies": {
+    "electron-log": "^5.0.9"
+  },
   "devDependencies": {
     "@babel/core": "^7.27.1",
     "@babel/preset-env": "^7.27.2",

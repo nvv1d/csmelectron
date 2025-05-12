@@ -4,25 +4,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sesame Research Demo</title>
-
-    <!-- Existing icon links -->
-    <link rel="apple-touch-icon" sizes="57x57" href="../assets/apple-icon-57x57.png">
-    <!-- ... (previous icon links) ... -->
-
     <style>
         html, body {
             margin: 0;
             padding: 0;
-            overflow: hidden;
             width: 100%;
             height: 100%;
+            overflow: hidden;
+            background-color: #f0f0f0;
+        }
+        #error-container {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: white;
+            z-index: 1000;
+            text-align: center;
+            padding-top: 50px;
         }
         #webview-container {
             width: 100%;
             height: 100%;
-            position: fixed;
-            top: 0;
-            left: 0;
+            position: relative;
         }
         webview {
             width: 100%;
@@ -32,39 +38,112 @@
     </style>
 </head>
 <body>
+    <div id="error-container">
+        <h1>Page Load Error</h1>
+        <p>Unable to load the Sesame Research demo page.</p>
+        <p>Please check your internet connection or contact support.</p>
+    </div>
     <div id="webview-container">
         <webview 
+            id="mainWebview"
             src="https://www.sesame.com/research/crossing_the_uncanny_valley_of_voice#demo" 
             allowfullscreen 
             webpreferences="nodeIntegration=no, contextIsolation=yes"
+            partition="persist:sesame"
         ></webview>
     </div>
-    <script src="renderer.js"></script>
+
     <script>
-        // Inject CSS to hide everything except the demo section
         document.addEventListener('DOMContentLoaded', () => {
-            const webview = document.querySelector('webview');
-            
+            const webview = document.getElementById('mainWebview');
+            const errorContainer = document.getElementById('error-container');
+
+            // Logging function
+            function logMessage(message) {
+                console.log(message);
+                window.electronAPI.sendMessage('log', message);
+            }
+
+            // Error handling
+            webview.addEventListener('did-fail-load', (event) => {
+                logMessage('Webview failed to load');
+                logMessage(JSON.stringify(event));
+                
+                // Show error container
+                errorContainer.style.display = 'block';
+                webview.style.display = 'none';
+            });
+
             webview.addEventListener('dom-ready', () => {
-                webview.insertCSS(`
-                    body {
-                        overflow: hidden !important;
-                    }
-                    /* Hide everything except the demo section */
-                    body > *:not(#demo) {
-                        display: none !important;
-                    }
-                    #demo {
-                        position: fixed !important;
-                        top: 0 !important;
-                        left: 0 !important;
-                        width: 100vw !important;
-                        height: 100vh !important;
-                        margin: 0 !important;
-                        padding: 0 !important;
-                        overflow: hidden !important;
-                    }
-                `);
+                logMessage('Webview DOM is ready');
+                
+                try {
+                    // Inject CSS to focus on demo section
+                    webview.insertCSS(`
+                        body {
+                            overflow: hidden !important;
+                            margin: 0 !important;
+                            padding: 0 !important;
+                            background: white !important;
+                        }
+                        * {
+                            box-sizing: border-box !important;
+                        }
+                        html, body {
+                            width: 100% !important;
+                            height: 100% !important;
+                            max-width: 100% !important;
+                            max-height: 100% !important;
+                        }
+                        #app {
+                            display: none !important;
+                        }
+                        #demo {
+                            position: fixed !important;
+                            top: 0 !important;
+                            left: 0 !important;
+                            width: 100vw !important;
+                            height: 100vh !important;
+                            margin: 0 !important;
+                            padding: 0 !important;
+                            overflow: hidden !important;
+                            background: white !important;
+                        }
+                        .demo-container {
+                            width: 100% !important;
+                            height: 100% !important;
+                            margin: 0 !important;
+                            padding: 0 !important;
+                        }
+                        /* Hide everything except the specific demo content */
+                        body > *:not(#demo) {
+                            display: none !important;
+                        }
+                    `);
+
+                    // Focus and scroll to demo section
+                    webview.executeJavaScript(`
+                        const demoSection = document.getElementById('demo');
+                        if (demoSection) {
+                            demoSection.scrollIntoView({block: 'start', inline: 'nearest'});
+                            demoSection.focus();
+                            console.log('Demo section found and focused');
+                        } else {
+                            console.error('Demo section not found');
+                        }
+                    `);
+                } catch (error) {
+                    logMessage('Error in dom-ready handler: ' + error.message);
+                }
+            });
+
+            // Prevent navigation away from demo
+            webview.addEventListener('will-navigate', (event) => {
+                const url = new URL(event.url);
+                if (!url.hash.includes('demo')) {
+                    event.preventDefault();
+                    logMessage('Navigation prevented: ' + event.url);
+                }
             });
         });
     </script>
