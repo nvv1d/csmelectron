@@ -32,13 +32,32 @@ function createWindow() {
       console.error('Failed to load HTML file:', err);
     });
 
-  // Handle microphone permissions
+  // Handle microphone and camera permissions globally
   session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
-    if (permission === 'media') {
+    // Automatically grant microphone, camera, and audio capture permissions
+    const allowedPermissions = [
+      'media', 
+      'mediaDevices', 
+      'mediaKeySystem', 
+      'openExternal',
+      'clipboard-read',
+      'clipboard-write'
+    ];
+    
+    if (allowedPermissions.includes(permission)) {
       callback(true);
     } else {
       callback(false);
     }
+  });
+
+  // Additional microphone access configuration
+  session.defaultSession.setDevicePermissionHandler((details) => {
+    // Always allow microphone and camera access
+    if (details.deviceType === 'media') {
+      return true;
+    }
+    return false;
   });
 }
 

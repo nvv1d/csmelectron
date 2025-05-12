@@ -11,7 +11,7 @@
             width: 691px;
             height: 448px;
             overflow: hidden;
-            background-color: #e8ede4; /* Match the soft green background */
+            background-color: #e8ede4;
         }
         #error-container {
             display: none;
@@ -78,9 +78,12 @@
                 logMessage('Webview DOM is ready');
                 
                 try {
-                    // Inject CSS to focus on demo section
+                    // Inject CSS to focus on demo section while preserving functionality
                     webview.insertCSS(`
-                        body {
+                        * {
+                            box-sizing: border-box !important;
+                        }
+                        html, body {
                             width: 691px !important;
                             height: 448px !important;
                             max-width: 691px !important;
@@ -90,44 +93,61 @@
                             padding: 0 !important;
                             background: #e8ede4 !important;
                         }
-                        * {
-                            box-sizing: border-box !important;
-                        }
                         #app {
-                            display: none !important;
-                        }
-                        #demo {
-                            position: fixed !important;
-                            top: 0 !important;
-                            left: 0 !important;
                             width: 691px !important;
                             height: 448px !important;
-                            margin: 0 !important;
-                            padding: 0 !important;
                             overflow: hidden !important;
-                            background: #e8ede4 !important;
-                        }
-                        .demo-container {
-                            width: 100% !important;
-                            height: 100% !important;
-                            margin: 0 !important;
-                            padding: 0 !important;
-                        }
-                        /* Hide everything except the specific demo content */
-                        body > *:not(#demo) {
-                            display: none !important;
                         }
                     `);
 
-                    // Focus and scroll to demo section
+                    // Execute JavaScript to prepare the demo section
                     webview.executeJavaScript(`
-                        const demoSection = document.getElementById('demo');
-                        if (demoSection) {
-                            demoSection.scrollIntoView({block: 'start', inline: 'nearest'});
-                            demoSection.focus();
-                            console.log('Demo section found and focused');
+                        // Find the demo container
+                        const demoContainer = document.querySelector('[data-sentry-component="Visualizer"]');
+                        
+                        if (demoContainer) {
+                            // Ensure the demo section fills the entire view
+                            demoContainer.style.width = '691px';
+                            demoContainer.style.height = '448px';
+                            demoContainer.style.margin = '0';
+                            demoContainer.style.padding = '0';
+                            demoContainer.style.overflow = 'hidden';
+                            
+                            // Preserve original click interactions
+                            const mayaButton = demoContainer.querySelector('[aria-label="Maya"]');
+                            const milesButton = demoContainer.querySelector('[aria-label="Miles"]');
+                            
+                            if (mayaButton) {
+                                mayaButton.style.cursor = 'pointer';
+                                mayaButton.addEventListener('click', (e) => {
+                                    // Ensure the original click handler is preserved
+                                    const originalHandler = Object.values(mayaButton).find(prop => 
+                                        prop && prop.onClick
+                                    )?.onClick;
+                                    
+                                    if (originalHandler) {
+                                        originalHandler(e);
+                                    }
+                                });
+                            }
+                            
+                            if (milesButton) {
+                                milesButton.style.cursor = 'pointer';
+                                milesButton.addEventListener('click', (e) => {
+                                    // Ensure the original click handler is preserved
+                                    const originalHandler = Object.values(milesButton).find(prop => 
+                                        prop && prop.onClick
+                                    )?.onClick;
+                                    
+                                    if (originalHandler) {
+                                        originalHandler(e);
+                                    }
+                                });
+                            }
+                            
+                            console.log('Demo section prepared successfully');
                         } else {
-                            console.error('Demo section not found');
+                            console.error('Could not find demo section');
                         }
                     `);
                 } catch (error) {
@@ -142,6 +162,12 @@
                     event.preventDefault();
                     logMessage('Navigation prevented: ' + event.url);
                 }
+            });
+
+            // Enable devtools for debugging
+            webview.addEventListener('dom-ready', () => {
+                // Uncomment for debugging
+                // webview.openDevTools();
             });
         });
     </script>
