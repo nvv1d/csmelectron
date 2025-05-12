@@ -1,0 +1,28 @@
+# Application Icons
+
+Replace these placeholder icon files with your actual application icons:
+
+- `icon.ico` for Windows
+- `icon.icns` for macOS
+- `icon.png` for Linux
+
+## Icon Requirements
+
+### Windows (.ico)
+- Recommended sizes: 16x16, 32x32, 48x48, 64x64, 128x128, 256x256
+- Use a tool like ImageMagick or online converters to create multi-size .ico files
+
+### macOS (.icns)
+- Create using Apple's Icon Composer or third-party tools
+- Recommended sizes: 16x16, 32x32, 128x128, 256x256, 512x512, 1024x1024
+
+### Linux (.png)
+- Recommended size: 512x512 pixels
+- Transparent background preferred
+
+## Recommended Tools
+- IconConverter (Windows)
+- Image2icon (macOS)
+- Inkscape (Cross-platform)
+
+Place your custom icons in this directory before building the application.
