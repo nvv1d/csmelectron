@@ -1,6 +1,13 @@
 const { app, BrowserWindow, session, Menu } = require('electron');
 const path = require('path');
 
+// Define allowed URLs
+const TARGET_URL = 'https://www.sesame.com/research/crossing_the_uncanny_valley_of_voice#demo';
+const AUTH_URL_PREFIX = 'https://www.sesame.com/__/auth/handler';
+
+// Track if we have an auth window open
+let authWindow = null;
+
 async function createWindow() {
   // Remove application menu
   Menu.setApplicationMenu(null);
@@ -57,13 +64,11 @@ async function createWindow() {
     return false;
   });
 
-
   // Load the specific URL
-  const targetUrl = 'https://www.sesame.com/research/crossing_the_uncanny_valley_of_voice#demo';
-  console.log(`Loading URL: ${targetUrl}`);
+  console.log(`Loading URL: ${TARGET_URL}`);
   
   // Listen for ready-to-show to ensure window appears only when content is ready
-  // Add a 5-second delay before showing the window
+  // Add a 2-second delay before showing the window
   mainWindow.once('ready-to-show', () => {
     console.log('Window ready to show, applying 2 second delay...');
     setTimeout(() => {
@@ -81,7 +86,7 @@ async function createWindow() {
       document.documentElement.style.overflow = 'hidden';
       document.body.style.overflow = 'hidden';
       
-      // Hide the navigation menu and header elements
+      // Modify header elements - keep logo but disable link
       const style = document.createElement('style');
       style.textContent = \`
         /* Hide the hamburger menu button */
@@ -99,19 +104,33 @@ async function createWindow() {
           display: none !important;
         }
         
-        /* Optional: Also hide the logo if needed */
+        /* Keep logo visible but make it non-interactive */
         header a[href="/"] {
-          display: none !important;
+          pointer-events: none !important;
+          cursor: default !important;
         }
       \`;
       document.head.appendChild(style);
       
+      // Additional code to ensure logo link is disabled
+      const logoLink = document.querySelector('header a[href="/"]');
+      if (logoLink) {
+        logoLink.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          return false;
+        }, true);
+        
+        // Also replace the href to avoid any navigation
+        logoLink.removeAttribute('href');
+      }
+      
       console.log('[Main Process JS Injection] Applied overflow:hidden to html and body');
-      console.log('[Main Process JS Injection] Disabled navigation menu');
+      console.log('[Main Process JS Injection] Disabled navigation menu and logo link');
     `);
   });
   
-  await mainWindow.loadURL(targetUrl);
+  await mainWindow.loadURL(TARGET_URL);
   console.log(`URL loaded: ${mainWindow.webContents.getURL()}`);
   
   // Block shortcuts at the Electron level
@@ -127,20 +146,89 @@ async function createWindow() {
     }
   });
 
+  // Function to check if the URL is an authentication URL
+  function isAuthUrl(url) {
+    return url.startsWith(AUTH_URL_PREFIX);
+  }
 
-  // Prevent navigation away from the specific page/anchor
-  mainWindow.webContents.on('will-navigate', (event, url) => {
-    // Allow navigation *within* the same page (e.g., hash changes) but not *away* from the base URL.
-    // This check is a bit simplified; might need refinement depending on exact needs.
-    const currentBaseUrl = targetUrl.split('#')[0];
-    const requestedBaseUrl = url.split('#')[0];
-
-    if (requestedBaseUrl !== currentBaseUrl) {
-        console.log(`Preventing navigation to: ${url}`);
-        event.preventDefault();
-    } else {
-        console.log(`Allowing navigation within page: ${url}`);
+  // Function to handle authentication window
+  function openAuthWindow(url) {
+    // Close any existing auth window
+    if (authWindow) {
+      authWindow.close();
     }
+
+    // Create a small browser window for authentication
+    authWindow = new BrowserWindow({
+      width: 500, 
+      height: 600,
+      parent: mainWindow,
+      modal: true,
+      show: true,
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true,
+        sandbox: true,
+      }
+    });
+
+    // Load the auth URL
+    authWindow.loadURL(url);
+    console.log(`Auth window opened with URL: ${url}`);
+
+    // Close the auth window automatically when navigation is complete
+    authWindow.webContents.on('did-navigate', (event, newUrl) => {
+      if (newUrl.includes('https://www.sesame.com/login')) {
+        console.log('Authentication completed, closing auth window');
+        setTimeout(() => {
+          if (authWindow) {
+            authWindow.close();
+            authWindow = null;
+          }
+        }, 2000); // Give a slight delay to show success before closing
+      }
+    });
+
+    // Handle auth window closure
+    authWindow.on('closed', () => {
+      authWindow = null;
+    });
+  }
+
+  // Allow navigation to auth URLs or handle in separate window
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    console.log(`Navigation requested to: ${url}`);
+    
+    // Check if this is an authentication URL
+    if (isAuthUrl(url)) {
+      console.log(`Detected auth URL: ${url}`);
+      event.preventDefault();
+      openAuthWindow(url);
+    } 
+    // Allow navigation to the target URL
+    else if (url === TARGET_URL || url.startsWith(TARGET_URL.split('#')[0])) {
+      console.log(`Allowing navigation to target URL: ${url}`);
+      // Allow default navigation
+    }
+    // Block navigation to other URLs
+    else {
+      console.log(`Preventing navigation to: ${url}`);
+      event.preventDefault();
+    }
+  });
+
+  // Also handle new window events for links
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    console.log(`New window requested for: ${url}`);
+    
+    // Handle auth URLs in the authentication window
+    if (isAuthUrl(url)) {
+      openAuthWindow(url);
+      return { action: 'deny' }; // Prevent the default behavior
+    }
+    
+    // Block all other new windows
+    return { action: 'deny' };
   });
 
   // Optional: Handle 'did-fail-load'

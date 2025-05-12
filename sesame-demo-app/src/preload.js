@@ -1,4 +1,3 @@
-
 // preload.js - Enhanced Scroll Disabling and Security for External Content
 
 console.log('[Preload] Script loaded.');
@@ -53,8 +52,8 @@ function disableTextSelection() {
   try {
     const style = document.createElement('style');
     style.textContent = `
-      /* Disable text selection everywhere */
-      * {
+      /* Disable text selection everywhere except for input fields */
+      *:not(input):not(textarea) {
         -webkit-user-select: none !important;
         -moz-user-select: none !important;
         -ms-user-select: none !important;
@@ -62,19 +61,26 @@ function disableTextSelection() {
       }
       
       /* Prevent highlighting on click */
-      *::selection {
+      *:not(input):not(textarea)::selection {
         background: transparent !important;
       }
-      *::-moz-selection {
+      *:not(input):not(textarea)::-moz-selection {
         background: transparent !important;
+      }
+      
+      /* Keep logo visible but disable link functionality */
+      header a[href="/"]:hover {
+        cursor: default !important;
       }
     `;
     document.head.appendChild(style);
     
-    // Additional JavaScript protection
+    // Additional JavaScript protection for non-form elements
     document.addEventListener('selectstart', e => {
-      e.preventDefault();
-      return false;
+      if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        return false;
+      }
     }, { passive: false, capture: true });
     
     console.log('[Preload] Text selection disabled via CSS and event handlers');
@@ -165,6 +171,44 @@ function disableScrolling() {
   console.log('[Preload] Scroll disabling applied to window and document.');
 }
 
+// Function to disable logo link and keep it visible
+function disableLogoLink() {
+  console.log('[Preload] Disabling logo link while keeping it visible...');
+  
+  // Use a MutationObserver to watch for the logo in the DOM
+  const logoObserver = new MutationObserver((mutations) => {
+    const logoLink = document.querySelector('header a[href="/"]');
+    if (logoLink) {
+      console.log('[Preload] Found logo link, disabling it...');
+      
+      // Remove href attribute
+      logoLink.removeAttribute('href');
+      
+      // Add click prevention
+      logoLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      }, true);
+      
+      // Add styling
+      logoLink.style.pointerEvents = 'none';
+      logoLink.style.cursor = 'default';
+      
+      // We found what we need, no need to keep observing
+      logoObserver.disconnect();
+    }
+  });
+  
+  // Start observing once the DOM is loaded
+  document.addEventListener('DOMContentLoaded', () => {
+    logoObserver.observe(document.body, { 
+      childList: true, 
+      subtree: true 
+    });
+  });
+}
+
 // Apply all security measures on DOMContentLoaded
 window.addEventListener('DOMContentLoaded', () => {
   console.log('[Preload] DOMContentLoaded event fired.');
@@ -172,6 +216,7 @@ window.addEventListener('DOMContentLoaded', () => {
   disableContextMenu();
   blockDevToolsShortcuts();
   disableTextSelection();
+  disableLogoLink();
 });
 
 // Also apply all security measures after load event
@@ -181,6 +226,7 @@ window.addEventListener('load', () => {
   disableContextMenu();
   blockDevToolsShortcuts();
   disableTextSelection();
+  disableLogoLink();
   
   // Apply again after a short delay to catch any dynamically loaded content
   setTimeout(() => {
@@ -188,6 +234,7 @@ window.addEventListener('load', () => {
     disableContextMenu();
     blockDevToolsShortcuts();
     disableTextSelection();
+    disableLogoLink();
   }, 1000);
   
   setTimeout(() => {
@@ -195,6 +242,7 @@ window.addEventListener('load', () => {
     disableContextMenu();
     blockDevToolsShortcuts();
     disableTextSelection();
+    disableLogoLink();
   }, 3000);
 });
 
@@ -202,6 +250,7 @@ window.addEventListener('load', () => {
 setInterval(() => {
   disableScrolling();
   disableTextSelection();
+  disableLogoLink();
 }, 5000);
 
 // Monitor for mutations that might affect scrolling
@@ -210,6 +259,7 @@ try {
     console.log('[Preload] DOM mutations detected, reapplying protections...');
     disableScrolling();
     disableTextSelection();
+    disableLogoLink();
   });
   
   // Start observing once the DOM is ready
