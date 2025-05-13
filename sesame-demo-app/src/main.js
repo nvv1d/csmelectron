@@ -50,7 +50,7 @@ async function createWindow() {
     autoHideMenuBar: true,
     frame: false, // Remove window frame completely (no title bar or menu)
     titleBarStyle: 'hidden', // Hide the title bar but keep the window controls on macOS
-    icon: path.join(__dirname, '../assets/ms-icon-256x256.png'), // Make sure this path is correct relative to main.js
+    icon: path.join(__dirname, '../assets/Square150x150Logo.scale-400.png'),
     show: false, // Start window hidden
     backgroundColor: '#FFFFFF', // Set background color to white to prevent flash
     webPreferences: {
@@ -108,13 +108,13 @@ async function createWindow() {
   log.info(`Loading URL: ${TARGET_URL}`);
   
   // Listen for ready-to-show to ensure window appears only when content is ready
-  // Add a 2-second delay before showing the window
+  // Add a 3-second delay before showing the window
   mainWindow.once('ready-to-show', () => {
-    log.info('Window ready to show, applying 2 second delay...');
+    log.info('Window ready to show, applying 3 second delay...');
     setTimeout(() => {
       log.info('Delay complete, showing window now');
       mainWindow.show();
-    }, 2000); // 2000ms = 2 seconds
+    }, 3000); // 3000ms = 3 seconds
   });
   
   // Handle page load
