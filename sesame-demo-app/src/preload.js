@@ -1,6 +1,58 @@
-// preload.js - Enhanced Scroll Disabling and Security for External Content
+// preload.js - Enhanced with Draggable Region Support
 
 console.log('[Preload] Script loaded.');
+
+// Function to create draggable region
+function createDraggableRegion() {
+  console.log('[Preload] Creating draggable region...');
+  
+  // Wait for the DOM to be loaded
+  document.addEventListener('DOMContentLoaded', () => {
+    // Create a draggable region at the top of the window
+    const dragRegion = document.createElement('div');
+    dragRegion.id = 'app-drag-region';
+    
+    // Style the drag region
+    dragRegion.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 30px;
+      z-index: 9999;
+      -webkit-app-region: drag; /* This makes the region draggable */
+      app-region: drag;
+    `;
+    
+    // Add it to the document
+    document.body.appendChild(dragRegion);
+    
+    console.log('[Preload] Draggable region created');
+  });
+  
+  // Also try after the window has loaded
+  window.addEventListener('load', () => {
+    // Check if drag region exists, create if not
+    if (!document.getElementById('app-drag-region')) {
+      const dragRegion = document.createElement('div');
+      dragRegion.id = 'app-drag-region';
+      
+      dragRegion.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 30px;
+        z-index: 9999;
+        -webkit-app-region: drag;
+        app-region: drag;
+      `;
+      
+      document.body.appendChild(dragRegion);
+      console.log('[Preload] Draggable region created after load');
+    }
+  });
+}
 
 // Function to disable context menu (right-click)
 function disableContextMenu() {
@@ -212,6 +264,7 @@ function disableLogoLink() {
 // Apply all security measures on DOMContentLoaded
 window.addEventListener('DOMContentLoaded', () => {
   console.log('[Preload] DOMContentLoaded event fired.');
+  createDraggableRegion(); // Add draggable region
   disableScrolling();
   disableContextMenu();
   blockDevToolsShortcuts();
@@ -222,6 +275,7 @@ window.addEventListener('DOMContentLoaded', () => {
 // Also apply all security measures after load event
 window.addEventListener('load', () => {
   console.log('[Preload] Window load event fired.');
+  createDraggableRegion(); // Add draggable region
   disableScrolling();
   disableContextMenu();
   blockDevToolsShortcuts();
@@ -230,6 +284,7 @@ window.addEventListener('load', () => {
   
   // Apply again after a short delay to catch any dynamically loaded content
   setTimeout(() => {
+    createDraggableRegion(); // Add draggable region
     disableScrolling();
     disableContextMenu();
     blockDevToolsShortcuts();
@@ -238,6 +293,7 @@ window.addEventListener('load', () => {
   }, 1000);
   
   setTimeout(() => {
+    createDraggableRegion(); // Add draggable region
     disableScrolling();
     disableContextMenu();
     blockDevToolsShortcuts();
@@ -248,6 +304,7 @@ window.addEventListener('load', () => {
 
 // Apply periodically to handle dynamic content changes
 setInterval(() => {
+  createDraggableRegion(); // Add draggable region
   disableScrolling();
   disableTextSelection();
   disableLogoLink();
@@ -257,6 +314,7 @@ setInterval(() => {
 try {
   const observer = new MutationObserver((mutations) => {
     console.log('[Preload] DOM mutations detected, reapplying protections...');
+    createDraggableRegion(); // Add draggable region
     disableScrolling();
     disableTextSelection();
     disableLogoLink();
