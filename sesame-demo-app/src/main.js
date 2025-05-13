@@ -1,5 +1,5 @@
-// Modified main.js with session persistence
-const { app, BrowserWindow, session, Menu } = require('electron');
+// Modified main.js with session persistence and updated UI behaviors
+const { app, BrowserWindow, session, Menu, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const electronLog = require('electron-log');
@@ -50,7 +50,7 @@ async function createWindow() {
     autoHideMenuBar: true,
     frame: false, // Remove window frame completely (no title bar or menu)
     titleBarStyle: 'hidden', // Hide the title bar but keep the window controls on macOS
-    icon: path.join(__dirname, '../assets/Square150x150Logo.scale-400.png'),
+    icon: path.join(__dirname, '../assets/Square150x150Logo.scale-200.png'),
     show: false, // Start window hidden
     backgroundColor: '#FFFFFF', // Set background color to white to prevent flash
     webPreferences: {
@@ -63,6 +63,12 @@ async function createWindow() {
       session: persistentSession, // Use our persistent session
     },
     scrollBounce: false,    // Disable scroll bounce effect (macOS)
+  });
+
+  // Register IPC handler for close app request
+  ipcMain.on('close-app', () => {
+    log.info('Close app request received from renderer process');
+    mainWindow.close();
   });
 
   // Auto-grant specific permissions relevant to media/clipboard if needed by the site
@@ -126,12 +132,13 @@ async function createWindow() {
       document.documentElement.style.overflow = 'hidden';
       document.body.style.overflow = 'hidden';
       
-      // Modify header elements - keep logo but disable link
+      // Make hamburger menu visible but modify its behavior
       const style = document.createElement('style');
       style.textContent = \`
-        /* Hide the hamburger menu button */
+        /* Keep the hamburger menu button visible */
         button[data-mebu-button="true"] {
-          display: none !important;
+          display: block !important;
+          cursor: pointer !important;
         }
         
         /* Hide the navigation menu that appears on mobile */
@@ -149,24 +156,126 @@ async function createWindow() {
           pointer-events: none !important;
           cursor: default !important;
         }
+        
+        /* Style for attribution text */
+        .header-attribution {
+          font-size: 11px;
+          color: #888;
+          margin-left: -5px; /* Negative margin to move text closer to logo */
+          padding-left: 0;
+          margin-right: auto; /* Push other elements to the right */
+          align-self: center;
+          display: inline-block;
+          position: relative; /* Enable positioning */
+          left: -5px; /* Move left by 5px */
+        }
+        
+        /* Ensure hamburger button stays at the right */
+        button[data-mebu-button="true"] {
+          margin-left: auto; /* Push to the right */
+        }
       \`;
       document.head.appendChild(style);
       
-      // Additional code to ensure logo link is disabled
-      const logoLink = document.querySelector('header a[href="/"]');
-      if (logoLink) {
-        logoLink.addEventListener('click', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          return false;
-        }, true);
+      // Add attribution text next to the logo in header
+      setTimeout(() => {
+        const logoContainer = document.querySelector('header a[href="/"]');
+        const menuButton = document.querySelector('button[data-mebu-button="true"]');
         
-        // Also replace the href to avoid any navigation
-        logoLink.removeAttribute('href');
-      }
+        if (logoContainer && logoContainer.parentElement) {
+          const attributionText = document.createElement('div');
+          attributionText.className = 'header-attribution';
+          attributionText.textContent = '© Sesame Research. Packaged by Navid Khiyavi';
+          
+          // Insert the attribution text right after the logo (not as a child)
+          logoContainer.insertAdjacentElement('afterend', attributionText);
+          
+          // Remove the attribution from the bottom if it exists
+          const bottomAttribution = document.querySelector('.attribution');
+          if (bottomAttribution) {
+            bottomAttribution.remove();
+          }
+        }
+        
+        // Make hamburger button close the app (keep it in right corner)
+        if (menuButton) {
+          // Remove existing event listeners with a cloned element
+          const newMenuButton = menuButton.cloneNode(true);
+          menuButton.parentNode.replaceChild(newMenuButton, menuButton);
+          
+          // Track clicks for the ALT+F4 functionality
+          let clickCount = 0;
+          let clickTimer = null;
+          
+          // Add our custom close app event
+          newMenuButton.addEventListener('click', () => {
+            clickCount++;
+            
+            // Clear any existing timer
+            if (clickTimer) {
+              clearTimeout(clickTimer);
+            }
+            
+            if (clickCount === 1) {
+              console.log('First menu button click, waiting for second click...');
+              
+              // Reset click count after 500ms if no second click
+              clickTimer = setTimeout(() => {
+                clickCount = 0;
+              }, 500);
+            } else if (clickCount >= 2) {
+              // Second click - send ALT+F4 equivalent (close app)
+              console.log('Second menu button click, sending ALT+F4 signal to close app');
+              clickCount = 0;
+              
+              // Use a custom event to communicate with the preload script
+              const event = new CustomEvent('app-close-requested');
+              document.dispatchEvent(event);
+            }
+          });
+        }
+        
+        // Handle the X button that appears after clicking the hamburger menu
+        const observer = new MutationObserver((mutations) => {
+          const closeButton = document.querySelector('button[aria-label="Close"]');
+          if (closeButton && !closeButton.hasAttribute('data-close-listener')) {
+            console.log('Found X button, adding close app functionality');
+            
+            // Mark button to prevent duplicate listeners
+            closeButton.setAttribute('data-close-listener', 'true');
+            
+            // Remove existing event listeners if any
+            const newCloseButton = closeButton.cloneNode(true);
+            closeButton.parentNode.replaceChild(newCloseButton, closeButton);
+            
+            // Add our custom close app event
+            newCloseButton.addEventListener('click', (event) => {
+              console.log('Close (X) button clicked, sending close-app signal');
+              
+              // Immediately close the app without any conditions
+              window.electronAPI.closeApp();
+              
+              // Prevent default behavior and stop propagation
+              if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+              }
+              
+              return false;
+            }, { capture: true });
+          }
+        });
+        
+        // Start observing document for changes to detect when X button appears
+        observer.observe(document.body, { 
+          childList: true, 
+          subtree: true 
+        });
+        
+      }, 1000); // Small delay to ensure DOM elements are available
       
       console.log('[Main Process JS Injection] Applied overflow:hidden to html and body');
-      console.log('[Main Process JS Injection] Disabled navigation menu and logo link');
+      console.log('[Main Process JS Injection] Modified navigation menu behavior');
     `);
   });
   

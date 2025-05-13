@@ -1,6 +1,14 @@
-// preload.js - Enhanced with Draggable Region Support
+// preload.js - Enhanced with Draggable Region Support and App Close Functionality
 
 console.log('[Preload] Script loaded.');
+
+// Import required Electron modules using the contextBridge
+const { contextBridge, ipcRenderer } = require('electron');
+
+// Set up communication channel between renderer and main process
+contextBridge.exposeInMainWorld('electronAPI', {
+  closeApp: () => ipcRenderer.send('close-app')
+});
 
 // Function to create draggable region
 function createDraggableRegion() {
@@ -51,6 +59,18 @@ function createDraggableRegion() {
       document.body.appendChild(dragRegion);
       console.log('[Preload] Draggable region created after load');
     }
+  });
+}
+
+// Function to handle close app requests
+function setupCloseAppListener() {
+  console.log('[Preload] Setting up close app event listener...');
+  
+  // Listen for the custom event from the injected script
+  document.addEventListener('app-close-requested', () => {
+    console.log('[Preload] Close app event received, sending to main process');
+    // Use the exposed API to send the close request to the main process
+    window.electronAPI.closeApp();
   });
 }
 
@@ -265,6 +285,7 @@ function disableLogoLink() {
 window.addEventListener('DOMContentLoaded', () => {
   console.log('[Preload] DOMContentLoaded event fired.');
   createDraggableRegion(); // Add draggable region
+  setupCloseAppListener(); // Setup app close event listener
   disableScrolling();
   disableContextMenu();
   blockDevToolsShortcuts();
@@ -276,6 +297,7 @@ window.addEventListener('DOMContentLoaded', () => {
 window.addEventListener('load', () => {
   console.log('[Preload] Window load event fired.');
   createDraggableRegion(); // Add draggable region
+  setupCloseAppListener(); // Setup app close event listener
   disableScrolling();
   disableContextMenu();
   blockDevToolsShortcuts();
@@ -285,6 +307,7 @@ window.addEventListener('load', () => {
   // Apply again after a short delay to catch any dynamically loaded content
   setTimeout(() => {
     createDraggableRegion(); // Add draggable region
+    setupCloseAppListener(); // Setup app close event listener
     disableScrolling();
     disableContextMenu();
     blockDevToolsShortcuts();
@@ -294,6 +317,7 @@ window.addEventListener('load', () => {
   
   setTimeout(() => {
     createDraggableRegion(); // Add draggable region
+    setupCloseAppListener(); // Setup app close event listener
     disableScrolling();
     disableContextMenu();
     blockDevToolsShortcuts();
@@ -305,6 +329,7 @@ window.addEventListener('load', () => {
 // Apply periodically to handle dynamic content changes
 setInterval(() => {
   createDraggableRegion(); // Add draggable region
+  setupCloseAppListener(); // Setup app close event listener
   disableScrolling();
   disableTextSelection();
   disableLogoLink();
@@ -315,6 +340,7 @@ try {
   const observer = new MutationObserver((mutations) => {
     console.log('[Preload] DOM mutations detected, reapplying protections...');
     createDraggableRegion(); // Add draggable region
+    setupCloseAppListener(); // Setup app close event listener
     disableScrolling();
     disableTextSelection();
     disableLogoLink();
