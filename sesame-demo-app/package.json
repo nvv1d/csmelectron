@@ -17,7 +17,7 @@
     "demo",
     "voice"
   ],
-  "author": "Navid Khiyavi",
+  "author": "nvv1d",
   "license": "MIT",
   "dependencies": {
     "electron-log": "^5.0.9"
