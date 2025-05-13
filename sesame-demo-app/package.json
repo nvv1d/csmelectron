@@ -1,7 +1,7 @@
 {
-  "name": "sesame-demo-app",
+  "name": "sesame-voice-demo",
   "version": "1.0.0",
-  "description": "Sesame Research Demo Application",
+  "description": "Sesame Voice Demo Application - Crossing the Uncanny Valley of Voice",
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
@@ -14,9 +14,10 @@
     "electron",
     "sesame",
     "research",
-    "demo"
+    "demo",
+    "voice"
   ],
-  "author": "Your Name",
+  "author": "Navid Khiyavi",
   "license": "MIT",
   "dependencies": {
     "electron-log": "^5.0.9"
@@ -34,8 +35,8 @@
     "webpack-cli": "^5.1.4"
   },
   "build": {
-    "appId": "com.sesame.demo",
-    "productName": "Sesame Research Demo",
+    "appId": "com.sesame.voice.demo",
+    "productName": "Sesame Voice Demo",
     "directories": {
       "output": "dist"
     },
@@ -67,19 +68,19 @@
       "target": [
         "nsis"
       ],
-      "icon": "assets/ms-icon-144x144.png"
+      "icon": "assets/Square44x44Logo.targetsize-256.png"
     },
     "mac": {
       "target": [
         "dmg"
       ],
-      "icon": "assets/apple-icon-180x180.png"
+      "icon": "assets/Square150x150Logo.scale-200.png"
     },
     "linux": {
       "target": [
         "AppImage"
       ],
-      "icon": "assets/android-icon-192x192.png"
+      "icon": "assets/Square310x310Logo.scale-200.png"
     }
   }
 }
