@@ -47,6 +47,7 @@ sesame-demo-app/
 │   ├── index.html
 │   ├── renderer.js
 │   ├── preload.js
+│   ├── auth.js
 │   └── main.js
 │
 ├── package.json
@@ -66,9 +67,3 @@ The application automatically handles microphone permissions through Electron's 
 - Ensure all dependencies are installed correctly
 - Check console for any error messages
 - Verify system microphone settings
-
-## License
-[Your License Here]
-
-## Contact
-[Your Contact Information]
