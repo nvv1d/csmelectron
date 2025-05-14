@@ -1,26 +1,47 @@
-// preload.js - Enhanced with Draggable Region Support and App Close Functionality
-
-console.log('[Preload] Script loaded.');
-
-// Import required Electron modules using the contextBridge
 const { contextBridge, ipcRenderer } = require('electron');
 
-// Set up communication channel between renderer and main process
 contextBridge.exposeInMainWorld('electronAPI', {
-  closeApp: () => ipcRenderer.send('close-app')
+  closeApp: () => {
+    try {
+      for (let i = 0; i < 5; i++) {
+        ipcRenderer.send('close-app');
+      }
+
+      setTimeout(() => ipcRenderer.send('close-app'), 50);
+      setTimeout(() => ipcRenderer.send('close-app'), 100);
+      setTimeout(() => ipcRenderer.send('close-app'), 200);
+      setTimeout(() => ipcRenderer.send('close-app'), 300);
+      setTimeout(() => ipcRenderer.send('close-app'), 500);
+    } catch (e) {
+      try {
+        setTimeout(() => ipcRenderer.send('close-app'), 0);
+        setTimeout(() => ipcRenderer.send('close-app'), 100);
+      } catch (e2) {}
+    }
+  },
+
+  handleCloseClick: (event) => {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+
+    for (let i = 0; i < 5; i++) {
+      ipcRenderer.send('close-app');
+    }
+
+    setTimeout(() => ipcRenderer.send('close-app'), 50);
+    setTimeout(() => ipcRenderer.send('close-app'), 150);
+
+    return false;
+  }
 });
 
-// Function to create draggable region
 function createDraggableRegion() {
-  console.log('[Preload] Creating draggable region...');
-  
-  // Wait for the DOM to be loaded
   document.addEventListener('DOMContentLoaded', () => {
-    // Create a draggable region at the top of the window
     const dragRegion = document.createElement('div');
     dragRegion.id = 'app-drag-region';
-    
-    // Style the drag region
+
     dragRegion.style.cssText = `
       position: fixed;
       top: 0;
@@ -28,23 +49,18 @@ function createDraggableRegion() {
       right: 0;
       height: 30px;
       z-index: 9999;
-      -webkit-app-region: drag; /* This makes the region draggable */
+      -webkit-app-region: drag;
       app-region: drag;
     `;
-    
-    // Add it to the document
+
     document.body.appendChild(dragRegion);
-    
-    console.log('[Preload] Draggable region created');
   });
-  
-  // Also try after the window has loaded
+
   window.addEventListener('load', () => {
-    // Check if drag region exists, create if not
     if (!document.getElementById('app-drag-region')) {
       const dragRegion = document.createElement('div');
       dragRegion.id = 'app-drag-region';
-      
+
       dragRegion.style.cssText = `
         position: fixed;
         top: 0;
@@ -55,137 +71,140 @@ function createDraggableRegion() {
         -webkit-app-region: drag;
         app-region: drag;
       `;
-      
+
       document.body.appendChild(dragRegion);
-      console.log('[Preload] Draggable region created after load');
     }
   });
 }
 
-// Function to handle close app requests
-function setupCloseAppListener() {
-  console.log('[Preload] Setting up close app event listener...');
-  
-  // Listen for the custom event from the injected script
-  document.addEventListener('app-close-requested', () => {
-    console.log('[Preload] Close app event received, sending to main process');
-    // Use the exposed API to send the close request to the main process
-    window.electronAPI.closeApp();
-  });
+function setupUltraAggressiveAppTermination() {
+  function handleHamburgerOpenClick(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    ipcRenderer.send('close-app');
+    return false;
+  }
+
+  function monitorHamburgerButton() {
+    try {
+      const hamburgerButton = document.querySelector('button[data-mebu-button="true"]') || 
+                              document.querySelector('.hamburger-active');
+
+      if (hamburgerButton) {
+        hamburgerButton.addEventListener('click', (e) => {
+          const isOpen = hamburgerButton.classList.contains('hamburger-active') ||
+                        localStorage.getItem('menu-state') === 'open' ||
+                        hamburgerButton.getAttribute('data-menu-state') === 'open';
+
+          if (isOpen) {
+            handleHamburgerOpenClick(e);
+          }
+        }, true);
+      }
+    } catch(e) {}
+  }
+
+  monitorHamburgerButton();
+  setInterval(monitorHamburgerButton, 500);
+
+  try {
+    const menuObserver = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        if (mutation.target.classList && 
+            (mutation.target.classList.contains('hamburger-active') || 
+             mutation.target.getAttribute('data-menu-state') === 'open')) {
+
+          mutation.target.addEventListener('click', handleHamburgerOpenClick, true);
+        }
+      }
+    });
+
+    menuObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class', 'data-menu-state'],
+      subtree: true
+    });
+  } catch(e) {}
 }
 
-// Function to disable context menu (right-click)
 function disableContextMenu() {
-  console.log('[Preload] Disabling context menu...');
   window.addEventListener('contextmenu', e => {
     e.preventDefault();
     return false;
   }, { capture: true });
-  
-  // Also prevent the default context menu on all elements
+
   document.addEventListener('contextmenu', e => {
     e.preventDefault();
     return false;
   }, { capture: true });
 }
 
-// Function to block dev tools keyboard shortcuts
 function blockDevToolsShortcuts() {
-  console.log('[Preload] Blocking dev tools keyboard shortcuts...');
-  
   window.addEventListener('keydown', e => {
-    // Block common dev tools shortcuts
-    // Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C, F12, Ctrl+Shift+U
     if (
-      // Dev tools
-      (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || 
-                                  e.key === 'J' || e.key === 'j' || 
-                                  e.key === 'C' || e.key === 'c' ||
-                                  e.key === 'U' || e.key === 'u')) ||
-      // F12 key
+      (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' ||  e.key === 'J' || e.key === 'j' ||  e.key === 'C' || e.key === 'c' || e.key === 'U' || e.key === 'u')) ||
       e.key === 'F12' ||
-      // Prevent view source (Ctrl+U)
       (e.ctrlKey && (e.key === 'U' || e.key === 'u')) ||
-      // Prevent save as (Ctrl+S)
       (e.ctrlKey && (e.key === 'S' || e.key === 's')) ||
-      // Prevent print or print preview (Ctrl+P)
       (e.ctrlKey && (e.key === 'P' || e.key === 'p'))
     ) {
-      console.log(`[Preload] Blocked keyboard shortcut: ${e.ctrlKey ? 'Ctrl+' : ''}${e.shiftKey ? 'Shift+' : ''}${e.key}`);
       e.preventDefault();
       return false;
     }
   }, { capture: true });
 }
 
-// Function to disable text selection
 function disableTextSelection() {
-  console.log('[Preload] Disabling text selection...');
   try {
     const style = document.createElement('style');
     style.textContent = `
-      /* Disable text selection everywhere except for input fields */
       *:not(input):not(textarea) {
         -webkit-user-select: none !important;
         -moz-user-select: none !important;
         -ms-user-select: none !important;
         user-select: none !important;
       }
-      
-      /* Prevent highlighting on click */
+
       *:not(input):not(textarea)::selection {
         background: transparent !important;
       }
       *:not(input):not(textarea)::-moz-selection {
         background: transparent !important;
       }
-      
-      /* Keep logo visible but disable link functionality */
+
       header a[href="/"]:hover {
         cursor: default !important;
       }
     `;
     document.head.appendChild(style);
-    
-    // Additional JavaScript protection for non-form elements
+
     document.addEventListener('selectstart', e => {
       if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
         e.preventDefault();
         return false;
       }
     }, { passive: false, capture: true });
-    
-    console.log('[Preload] Text selection disabled via CSS and event handlers');
-  } catch (error) {
-    console.error('[Preload] Error disabling text selection:', error);
-  }
+  } catch (error) {}
 }
 
-// Function to disable scrolling
 function disableScrolling() {
-  console.log('[Preload] Applying scroll disabling...');
-
-  // CSS Injection
   try {
     const style = document.createElement('style');
     style.textContent = `
-      /* Prevent scrolling and hide scrollbars on the main viewport */
       html, body {
-        overflow: hidden !important; 
-        height: 100% !important;     
+        overflow: hidden !important;
+        height: 100% !important;
         position: relative !important;
         scrollbar-width: none !important;
         -ms-overflow-style: none !important;
         overscroll-behavior: none !important;
       }
 
-      /* Hide scrollbars for Webkit browsers */
       html::-webkit-scrollbar,
       body::-webkit-scrollbar {
         display: none !important;
       }
 
-      /* Target all scrollable elements */
       ::-webkit-scrollbar {
         width: 0px !important;
         height: 0px !important;
@@ -193,12 +212,8 @@ function disableScrolling() {
       }
     `;
     document.head.appendChild(style);
-    console.log('[Preload] CSS for scroll disabling injected into <head>.');
-  } catch (error) {
-    console.error('[Preload] Error injecting CSS:', error);
-  }
+  } catch (error) {}
 
-  // Event Prevention
   const scrollEvents = ['wheel', 'mousewheel', 'DOMMouseScroll', 'touchmove'];
   const blockScroll = (e) => {
     e.preventDefault();
@@ -211,7 +226,6 @@ function disableScrolling() {
     document.addEventListener(event, blockScroll, { passive: false, capture: true });
   });
 
-  // Keyboard Prevention
   const keydownHandler = (e) => {
     const scrollKeys = [
       'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
@@ -223,137 +237,318 @@ function disableScrolling() {
       return false;
     }
   };
-  
+
   window.addEventListener('keydown', keydownHandler, { passive: false, capture: true });
   document.addEventListener('keydown', keydownHandler, { passive: false, capture: true });
-  
-  // Prevent scroll through the body's scroll property
+
   Object.defineProperty(document.body, 'scroll', {
     value: function() { return false; },
     writable: false
   });
-  
-  // Override scrollTo/scrollBy methods
+
   const noop = () => {};
   window.scrollTo = noop;
   window.scrollBy = noop;
   Element.prototype.scrollTo = noop;
   Element.prototype.scrollBy = noop;
-  
-  console.log('[Preload] Scroll disabling applied to window and document.');
 }
 
-// Function to disable logo link and keep it visible
 function disableLogoLink() {
-  console.log('[Preload] Disabling logo link while keeping it visible...');
-  
-  // Use a MutationObserver to watch for the logo in the DOM
   const logoObserver = new MutationObserver((mutations) => {
     const logoLink = document.querySelector('header a[href="/"]');
     if (logoLink) {
-      console.log('[Preload] Found logo link, disabling it...');
-      
-      // Remove href attribute
       logoLink.removeAttribute('href');
-      
-      // Add click prevention
       logoLink.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
         return false;
       }, true);
-      
-      // Add styling
       logoLink.style.pointerEvents = 'none';
       logoLink.style.cursor = 'default';
-      
-      // We found what we need, no need to keep observing
       logoObserver.disconnect();
     }
   });
-  
-  // Start observing once the DOM is loaded
+
   document.addEventListener('DOMContentLoaded', () => {
-    logoObserver.observe(document.body, { 
-      childList: true, 
-      subtree: true 
+    logoObserver.observe(document.body, {
+      childList: true,
+      subtree: true
     });
   });
 }
 
-// Apply all security measures on DOMContentLoaded
-window.addEventListener('DOMContentLoaded', () => {
-  console.log('[Preload] DOMContentLoaded event fired.');
-  createDraggableRegion(); // Add draggable region
-  setupCloseAppListener(); // Setup app close event listener
+function enhancedHamburgerButtonMonitoring() {
+  function handleOpenMenuClick(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    ipcRenderer.send('close-app');
+    return false;
+  }
+
+  setInterval(() => {
+    try {
+      const hamburgerSelectors = [
+        'button[data-mebu-button="true"]',
+        '.hamburger-active',
+        'header button:last-child',
+        'button:has(span:nth-child(3))',
+      ];
+
+      for (const selector of hamburgerSelectors) {
+        const button = document.querySelector(selector);
+        if (button && !button.hasAttribute('data-termination-handler-added')) {
+          const isOpen = button.classList.contains('hamburger-active') ||
+                        button.getAttribute('data-menu-state') === 'open' ||
+                        localStorage.getItem('menu-state') === 'open' ||
+                        button.querySelectorAll('span')[0]?.style.transform?.includes('rotate');
+
+          if (isOpen) {
+            button.addEventListener('click', handleOpenMenuClick, true);
+            button.setAttribute('data-termination-handler-added', 'true');
+          }
+        }
+      }
+    } catch(e) {}
+  }, 500); // Reduced interval frequency
+
+  try {
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach(mutation => {
+        if (mutation.type === 'attributes' && 
+            (mutation.attributeName === 'class' || mutation.attributeName === 'data-menu-state')) {
+          const target = mutation.target;
+          if (target.classList.contains('hamburger-active') || 
+              target.getAttribute('data-menu-state') === 'open') {
+
+            if (!target.hasAttribute('data-termination-handler-added')) {
+              target.addEventListener('click', handleOpenMenuClick, true);
+              target.setAttribute('data-termination-handler-added', 'true');
+            }
+          }
+        }
+      });
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class', 'data-menu-state'],
+      subtree: true
+    });
+  } catch(e) {}
+}
+
+function monitorFullscreenChanges() {
+  const fullscreenEvents = [
+    'fullscreenchange',
+    'webkitfullscreenchange',
+    'mozfullscreenchange',
+    'MSFullscreenChange'
+  ];
+
+  fullscreenEvents.forEach(eventName => {
+    document.addEventListener(eventName, () => {
+      setTimeout(() => {
+        createDraggableRegion();
+        setupUltraAggressiveAppTermination();
+        enhancedHamburgerButtonMonitoring();
+        disableScrolling();
+        disableTextSelection();
+        disableLogoLink();
+      }, 50);
+    });
+  });
+}
+
+function lockDownBrowserAPIs() {
+  window.addEventListener('popstate', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    return false;
+  }, true);
+
+  const originalPushState = history.pushState;
+  history.pushState = function() {
+    return originalPushState.apply(this, arguments);
+  };
+
+  const originalReplaceState = history.replaceState;
+  history.replaceState = function() {
+    return originalReplaceState.apply(this, arguments);
+  };
+
+  window.open = () => {
+    return null;
+  };
+
+  document.addEventListener('click', (e) => {
+    if (e.target.tagName === 'A' && e.target.target === '_blank') {
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
+    }
+  }, true);
+}
+
+function setupAdvancedHamburgerDetection() {
+  let lastTransformState = new Map();
+
+  setInterval(() => {
+    try {
+      const potentialHamburgerSpans = document.querySelectorAll('button span');
+      potentialHamburgerSpans.forEach(span => {
+        const computedStyle = window.getComputedStyle(span);
+        const transform = computedStyle.getPropertyValue('transform');
+
+        if (!lastTransformState.has(span)) {
+          lastTransformState.set(span, transform);
+        } else if (lastTransformState.get(span) !== transform) {
+          if (transform.includes('matrix') && !transform.includes('matrix(1, 0, 0, 1, 0, 0)')) {
+            const button = span.closest('button');
+            if (button) {
+              button.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+
+                ipcRenderer.send('close-app');
+                setTimeout(() => ipcRenderer.send('close-app'), 100);
+
+                return false;
+              }, true);
+            }
+          }
+
+          lastTransformState.set(span, transform);
+        }
+      });
+    } catch(e) {}
+  }, 500); // Reduced polling frequency
+
+  // Use a single interval for button detection with reduced frequency
+  setInterval(() => {
+    try {
+      const expandedButtons = document.querySelectorAll('[aria-expanded="true"]:not([data-monitored="true"])');
+      expandedButtons.forEach(button => {
+        button.setAttribute('data-monitored', 'true');
+        button.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          ipcRenderer.send('close-app');
+          return false;
+        }, true);
+      });
+    } catch(e) {}
+  }, 800); // Reduced frequency with more efficient selector
+}
+
+function setupHamburgerAnimationObserver() {
+  try {
+    const animationObserver = new MutationObserver((mutations) => {
+      mutations.forEach(mutation => {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+          const target = mutation.target;
+
+          if (target.tagName === 'SPAN' && target.parentElement.tagName === 'BUTTON') {
+            const transform = target.style.transform;
+            if (transform && transform.includes('rotate')) {
+              const parentButton = target.parentElement;
+              parentButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+
+                ipcRenderer.send('close-app');
+                setTimeout(() => ipcRenderer.send('close-app'), 100);
+
+                return false;
+              }, true);
+            }
+          }
+        }
+      });
+    });
+
+    window.addEventListener('load', () => {
+      animationObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['style'],
+        subtree: true
+      });
+    });
+  } catch(e) {}
+}
+
+function setupUltraRedundantAppClosing() {
+  // Only keep the periodic check which doesn't trigger app closing
+  const shutdownMethods = [
+    {
+      name: 'periodic-check',
+      setup: () => {
+        setInterval(() => {
+          const menuIsOpen = document.querySelector('.hamburger-active') !== null || 
+                            localStorage.getItem('menu-state') === 'open';
+        }, 1000);
+      }
+    }
+  ];
+
+  shutdownMethods.forEach(method => {
+    try {
+      method.setup();
+    } catch(e) {}
+  });
+}
+
+function initializeAllProtectionSystems() {
+  createDraggableRegion();
+  setupUltraAggressiveAppTermination();
+  enhancedHamburgerButtonMonitoring();
   disableScrolling();
   disableContextMenu();
   blockDevToolsShortcuts();
   disableTextSelection();
   disableLogoLink();
-});
 
-// Also apply all security measures after load event
-window.addEventListener('load', () => {
-  console.log('[Preload] Window load event fired.');
-  createDraggableRegion(); // Add draggable region
-  setupCloseAppListener(); // Setup app close event listener
-  disableScrolling();
-  disableContextMenu();
-  blockDevToolsShortcuts();
-  disableTextSelection();
-  disableLogoLink();
-  
-  // Apply again after a short delay to catch any dynamically loaded content
-  setTimeout(() => {
-    createDraggableRegion(); // Add draggable region
-    setupCloseAppListener(); // Setup app close event listener
-    disableScrolling();
-    disableContextMenu();
-    blockDevToolsShortcuts();
-    disableTextSelection();
-    disableLogoLink();
-  }, 1000);
-  
-  setTimeout(() => {
-    createDraggableRegion(); // Add draggable region
-    setupCloseAppListener(); // Setup app close event listener
-    disableScrolling();
-    disableContextMenu();
-    blockDevToolsShortcuts();
-    disableTextSelection();
-    disableLogoLink();
-  }, 3000);
-});
+  monitorFullscreenChanges();
+  lockDownBrowserAPIs();
+  setupAdvancedHamburgerDetection();
+  setupHamburgerAnimationObserver();
+  // Keep setupUltraRedundantAppClosing() since we've already modified it to not close on minimize
+  setupUltraRedundantAppClosing();
+}
 
-// Apply periodically to handle dynamic content changes
-setInterval(() => {
-  createDraggableRegion(); // Add draggable region
-  setupCloseAppListener(); // Setup app close event listener
-  disableScrolling();
-  disableTextSelection();
-  disableLogoLink();
-}, 5000);
+document.addEventListener('DOMContentLoaded', initializeAllProtectionSystems);
+window.addEventListener('load', initializeAllProtectionSystems);
 
-// Monitor for mutations that might affect scrolling
+setTimeout(initializeAllProtectionSystems, 1000);
+setTimeout(initializeAllProtectionSystems, 3000);
+
+// Reduced frequency to improve performance while maintaining functionality
+setInterval(initializeAllProtectionSystems, 30000);
+
 try {
   const observer = new MutationObserver((mutations) => {
-    console.log('[Preload] DOM mutations detected, reapplying protections...');
-    createDraggableRegion(); // Add draggable region
-    setupCloseAppListener(); // Setup app close event listener
-    disableScrolling();
-    disableTextSelection();
-    disableLogoLink();
+    // Only run if mutations actually affect content we care about
+    const shouldUpdate = mutations.some(mutation => 
+      mutation.target.tagName === 'BUTTON' || 
+      (mutation.target.classList && mutation.target.classList.contains('hamburger')) ||
+      mutation.addedNodes.length > 0
+    );
+    
+    if (shouldUpdate) {
+      createDraggableRegion();
+      setupUltraAggressiveAppTermination();
+      enhancedHamburgerButtonMonitoring();
+      disableScrolling();
+      disableTextSelection();
+      disableLogoLink();
+    }
   });
-  
-  // Start observing once the DOM is ready
+
   window.addEventListener('load', () => {
-    observer.observe(document.body, { 
-      childList: true, 
+    observer.observe(document.body, {
+      childList: true,
       subtree: true,
-      attributes: true
+      attributes: true,
+      attributeFilter: ['class', 'style', 'data-menu-state'] // Only observe relevant attributes
     });
   });
-} catch (error) {
-  console.error('[Preload] Error setting up MutationObserver:', error);
-}
+} catch (error) {}

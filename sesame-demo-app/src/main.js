@@ -1,46 +1,18 @@
-// Modified main.js with session persistence and updated UI behaviors
-const { app, BrowserWindow, session, Menu, ipcMain } = require('electron');
+const { app, BrowserWindow, session, Menu, ipcMain, globalShortcut } = require('electron');
 const path = require('path');
-const fs = require('fs');
 const electronLog = require('electron-log');
+const auth = require('./auth');
 
-// Configure logging
 electronLog.transports.file.level = 'info';
 electronLog.transports.console.level = 'info';
 const log = electronLog;
 
-// Define allowed URLs
 const TARGET_URL = 'https://www.sesame.com/research/crossing_the_uncanny_valley_of_voice#demo';
-const AUTH_URL_PREFIX = 'https://www.sesame.com/__/auth/handler';
-
-// Track if we have an auth window open
-let authWindow = null;
-
-// Path for storing session data
-const SESSION_PATH = path.join(app.getPath('userData'), 'sesame-session');
-
-// Create persistent session
-function createPersistentSession() {
-  log.info('Creating persistent session...');
-  // Create the sessions directory if it doesn't exist
-  if (!fs.existsSync(SESSION_PATH)) {
-    fs.mkdirSync(SESSION_PATH, { recursive: true });
-    log.info(`Created session directory: ${SESSION_PATH}`);
-  }
-
-  // Create a persistent session that will save cookies between app launches
-  const ses = session.fromPartition('persist:sesame-auth', { cache: true });
-  log.info('Persistent session created');
-  return ses;
-}
 
 async function createWindow() {
-  // Remove application menu
   Menu.setApplicationMenu(null);
-  
-  // Get persistent session
-  const persistentSession = createPersistentSession();
-  
+  const persistentSession = auth.createPersistentSession(app, session);
+
   const mainWindow = new BrowserWindow({
     width: 720,
     height: 530,
@@ -48,383 +20,244 @@ async function createWindow() {
     maximizable: false,
     fullscreenable: false,
     autoHideMenuBar: true,
-    frame: false, // Remove window frame completely (no title bar or menu)
-    titleBarStyle: 'hidden', // Hide the title bar but keep the window controls on macOS
-    icon: path.join(__dirname, '../assets/Square150x150Logo.scale-200.png'),
-    show: false, // Start window hidden
-    backgroundColor: '#FFFFFF', // Set background color to white to prevent flash
+    frame: false,
+    titleBarStyle: 'hidden',
+    icon: path.join(__dirname, '../assets/Square150x150Logo.scale-400.png'),
+    show: false,
+    backgroundColor: '#FFFFFF',
     webPreferences: {
-      nodeIntegration: false, // Good security practice
-      contextIsolation: true, // Good security practice (default)
-      sandbox: true,         // Good security practice (enhances process isolation)
-      preload: path.join(__dirname, 'preload.js'), // Correctly links preload script
-      webviewTag: false,     // Disable webview tag for security
-      devTools: process.env.NODE_ENV === 'development', // Only enable DevTools in development mode
-      session: persistentSession, // Use our persistent session
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: true,
+      preload: path.join(__dirname, 'preload.js'),
+      webviewTag: false,
+      devTools: process.env.NODE_ENV === 'development',
+      session: persistentSession,
     },
-    scrollBounce: false,    // Disable scroll bounce effect (macOS)
+    scrollBounce: false,
   });
 
-  // Register IPC handler for close app request
   ipcMain.on('close-app', () => {
-    log.info('Close app request received from renderer process');
-    mainWindow.close();
-  });
-
-  // Auto-grant specific permissions relevant to media/clipboard if needed by the site
-  persistentSession.setPermissionRequestHandler((webContents, permission, callback) => {
-    const allowedPermissions = [
-        'media',              // For getUserMedia (mic/camera access)
-        'mediaDevices',       // For enumerating devices
-        'mediaKeySystem',     // For encrypted media
-        'clipboard-read',     // To read from clipboard
-        'clipboard-sanitized-write' // Safer way to write to clipboard
-        // 'openExternal' is not managed here, it's an API call
-        // 'clipboard-write' is less safe than sanitized-write
-    ];
-    if (allowedPermissions.includes(permission)) {
-        log.info(`Granting permission: ${permission}`);
-        callback(true);
-    } else {
-        log.info(`Denying permission: ${permission}`);
-        callback(false); // Deny other permission requests automatically
+    try {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.destroy();
+      }
+    } catch (err) {
+      log.error('Error destroying main window:', err);
     }
+    app.exit(0);
   });
 
-  // Auto-grant device permissions specifically for media devices
-  persistentSession.setDevicePermissionHandler((details) => {
-    if (details.deviceType === 'media' && (details.origin === mainWindow.webContents.getURL() || details.origin === 'https://www.sesame.com')) {
-        log.info(`Granting device permission: ${details.deviceType} for ${details.origin}`);
-        return true; // Allow media devices (mic/camera) for the loaded origin
-    }
-    log.info(`Denying device permission: ${details.deviceType} for ${details.origin}`);
-    return false;
-  });
+  // Remove the minimize prevention to allow normal minimize behavior
+  // This will prevent the black screen issue when minimizing
 
-  // Before loading the URL, check if we have cookies for the domain
-  const cookies = await persistentSession.cookies.get({});
-  const hasAuthCookies = cookies.some(cookie => 
-    cookie.domain.includes('sesame.com') && 
-    (cookie.name.includes('auth') || cookie.name.includes('session'))
-  );
+  // Setup security and permission handlers
+  auth.setupSecurityHandlers(persistentSession, mainWindow);
   
-  log.info(`Authentication cookies found: ${hasAuthCookies}`);
+  // Check if user is already authenticated
+  const hasAuthCookies = await auth.checkAuthentication(persistentSession);
 
-  // Load the specific URL
-  log.info(`Loading URL: ${TARGET_URL}`);
-  
-  // Listen for ready-to-show to ensure window appears only when content is ready
-  // Add a 3-second delay before showing the window
   mainWindow.once('ready-to-show', () => {
-    log.info('Window ready to show, applying 3 second delay...');
     setTimeout(() => {
-      log.info('Delay complete, showing window now');
       mainWindow.show();
-    }, 3000); // 3000ms = 3 seconds
+    }, 5000);
   });
-  
-  // Handle page load
+
   mainWindow.webContents.on('did-finish-load', () => {
-    log.info('Page finished loading, executing additional scripts...');
-    // Inject additional scripts if needed after load
+    // Insert critical CSS first for faster rendering
+    mainWindow.webContents.insertCSS(`
+      html, body { overflow: hidden !important; }
+      button[data-mebu-button="true"] { display: block !important; cursor: pointer !important; }
+      #navigation-menu { opacity: 0 !important; pointer-events: none !important; position: absolute !important; overflow: hidden !important; height: 0 !important; width: 0 !important; }
+      header .flex-col gap-\\[var\\(--s16\\)\\] { display: none !important; }
+      header a[href="/"] { pointer-events: none !important; cursor: default !important; }
+    `);
+    
     mainWindow.webContents.executeJavaScript(`
-      // Force disable scrolling directly in the page context
-      document.documentElement.style.overflow = 'hidden';
-      document.body.style.overflow = 'hidden';
-      
-      // Make hamburger menu visible but modify its behavior
       const style = document.createElement('style');
       style.textContent = \`
-        /* Keep the hamburger menu button visible */
         button[data-mebu-button="true"] {
           display: block !important;
           cursor: pointer !important;
         }
-        
-        /* Hide the navigation menu that appears on mobile */
+
         #navigation-menu {
-          display: none !important;
+          opacity: 0 !important;
+          pointer-events: none !important;
+          position: absolute !important;
+          overflow: hidden !important;
+          height: 0 !important;
+          width: 0 !important;
         }
-        
-        /* Hide header navigation links at the top (Sesame, Research, Team, Demo) */
+
         header .flex-col gap-\\[var\\(--s16\\)\\] {
           display: none !important;
         }
-        
-        /* Keep logo visible but make it non-interactive */
+
         header a[href="/"] {
           pointer-events: none !important;
           cursor: default !important;
         }
-        
-        /* Style for attribution text */
+
         .header-attribution {
           font-size: 11px;
-          color: #888;
-          margin-left: -5px; /* Negative margin to move text closer to logo */
+          color: #0d0d0d;
+          margin-left: -5px;
           padding-left: 0;
-          margin-right: auto; /* Push other elements to the right */
+          margin-right: auto;
           align-self: center;
           display: inline-block;
-          position: relative; /* Enable positioning */
-          left: -5px; /* Move left by 5px */
+          position: relative;
+          left: -5px;
         }
-        
-        /* Ensure hamburger button stays at the right */
+
+
         button[data-mebu-button="true"] {
-          margin-left: auto; /* Push to the right */
+          margin-left: auto;
+        }
+
+        .hamburger-active span:nth-child(1) {
+          transform: translateY(8px) rotate(45deg) !important;
+          background-color: #ff3333 !important;
+        }
+        .hamburger-active span:nth-child(2) {
+          opacity: 0 !important;
+        }
+        .hamburger-active span:nth-child(3) {
+          transform: translateY(-8px) rotate(-45deg) !important;
+          background-color: #ff3333 !important;
         }
       \`;
       document.head.appendChild(style);
-      
-      // Add attribution text next to the logo in header
+
       setTimeout(() => {
         const logoContainer = document.querySelector('header a[href="/"]');
-        const menuButton = document.querySelector('button[data-mebu-button="true"]');
-        
+
         if (logoContainer && logoContainer.parentElement) {
           const attributionText = document.createElement('div');
           attributionText.className = 'header-attribution';
-          attributionText.textContent = '© Sesame Research. Packaged by Navid Khiyavi';
-          
-          // Insert the attribution text right after the logo (not as a child)
+          attributionText.textContent = '© 2025 Sesame AI Inc. All rights reserved. Packaged by Navid.';
           logoContainer.insertAdjacentElement('afterend', attributionText);
           
-          // Remove the attribution from the bottom if it exists
           const bottomAttribution = document.querySelector('.attribution');
           if (bottomAttribution) {
             bottomAttribution.remove();
           }
         }
-        
-        // Make hamburger button close the app (keep it in right corner)
-        if (menuButton) {
-          // Remove existing event listeners with a cloned element
-          const newMenuButton = menuButton.cloneNode(true);
-          menuButton.parentNode.replaceChild(newMenuButton, menuButton);
+
+        function implementHamburgerBehavior() {
+          let menuOpen = false;
+          const hamburgerButton = document.querySelector('button[data-mebu-button="true"]');
           
-          // Track clicks for the ALT+F4 functionality
-          let clickCount = 0;
-          let clickTimer = null;
-          
-          // Add our custom close app event
-          newMenuButton.addEventListener('click', () => {
-            clickCount++;
-            
-            // Clear any existing timer
-            if (clickTimer) {
-              clearTimeout(clickTimer);
+          if (hamburgerButton) {
+            const newButton = hamburgerButton.cloneNode(true);
+            if (hamburgerButton.parentNode) {
+              hamburgerButton.parentNode.replaceChild(newButton, hamburgerButton);
             }
             
-            if (clickCount === 1) {
-              console.log('First menu button click, waiting for second click...');
-              
-              // Reset click count after 500ms if no second click
-              clickTimer = setTimeout(() => {
-                clickCount = 0;
-              }, 500);
-            } else if (clickCount >= 2) {
-              // Second click - send ALT+F4 equivalent (close app)
-              console.log('Second menu button click, sending ALT+F4 signal to close app');
-              clickCount = 0;
-              
-              // Use a custom event to communicate with the preload script
-              const event = new CustomEvent('app-close-requested');
-              document.dispatchEvent(event);
-            }
-          });
-        }
-        
-        // Handle the X button that appears after clicking the hamburger menu
-        const observer = new MutationObserver((mutations) => {
-          const closeButton = document.querySelector('button[aria-label="Close"]');
-          if (closeButton && !closeButton.hasAttribute('data-close-listener')) {
-            console.log('Found X button, adding close app functionality');
-            
-            // Mark button to prevent duplicate listeners
-            closeButton.setAttribute('data-close-listener', 'true');
-            
-            // Remove existing event listeners if any
-            const newCloseButton = closeButton.cloneNode(true);
-            closeButton.parentNode.replaceChild(newCloseButton, closeButton);
-            
-            // Add our custom close app event
-            newCloseButton.addEventListener('click', (event) => {
-              console.log('Close (X) button clicked, sending close-app signal');
-              
-              // Immediately close the app without any conditions
-              window.electronAPI.closeApp();
-              
-              // Prevent default behavior and stop propagation
-              if (event) {
-                event.preventDefault();
-                event.stopPropagation();
+            const spans = newButton.querySelectorAll('span');
+            if (spans.length < 3) {
+              while (newButton.firstChild) {
+                newButton.removeChild(newButton.firstChild);
               }
               
-              return false;
-            }, { capture: true });
+              for (let i = 0; i < 3; i++) {
+                const span = document.createElement('span');
+                span.style.cssText = 'display: block; height: 2px; width: 100%; background-color: #333; margin: 4px 0; transition: all 0.3s ease;';
+                newButton.appendChild(span);
+              }
+            }
+            
+            newButton.addEventListener('click', (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              
+              if (!menuOpen) {
+                newButton.classList.add('hamburger-active');
+                
+                const spans = newButton.querySelectorAll('span');
+                if (spans.length >= 3) {
+                  spans[0].style.transform = 'translateY(8px) rotate(45deg)';
+                  spans[0].style.backgroundColor = '#ff3333';
+                  spans[1].style.opacity = '0';
+                  spans[2].style.transform = 'translateY(-8px) rotate(-45deg)';
+                  spans[2].style.backgroundColor = '#ff3333';
+                }
+                
+                menuOpen = true;
+                newButton.setAttribute('data-menu-state', 'open');
+                document.body.setAttribute('data-menu-state', 'open');
+                
+                return false;
+              } else {
+                if (window.electronAPI && typeof window.electronAPI.closeApp === 'function') {
+                  window.electronAPI.closeApp();
+                }
+                return false;
+              }
+            }, true);
+          } else {
+            const observer = new MutationObserver((mutations) => {
+              const button = document.querySelector('button[data-mebu-button="true"]');
+              if (button) {
+                observer.disconnect();
+                implementHamburgerBehavior();
+              }
+            });
+            
+            observer.observe(document.body, {
+              childList: true,
+              subtree: true
+            });
           }
-        });
-        
-        // Start observing document for changes to detect when X button appears
-        observer.observe(document.body, { 
-          childList: true, 
-          subtree: true 
-        });
-        
-      }, 1000); // Small delay to ensure DOM elements are available
-      
-      console.log('[Main Process JS Injection] Applied overflow:hidden to html and body');
-      console.log('[Main Process JS Injection] Modified navigation menu behavior');
+        }
+
+        implementHamburgerBehavior();
+        setTimeout(implementHamburgerBehavior, 1000);
+      }, 1000);
     `);
   });
-  
+
   await mainWindow.loadURL(TARGET_URL);
-  log.info(`URL loaded: ${mainWindow.webContents.getURL()}`);
-  
-  // Block shortcuts at the Electron level
+
   mainWindow.webContents.on('before-input-event', (event, input) => {
-    // Block common dev tools and browser shortcuts
     if (
       (input.control && input.shift && ['i', 'j', 'c', 'u'].includes(input.key.toLowerCase())) ||
       (input.control && ['u', 's', 'p'].includes(input.key.toLowerCase())) ||
       input.key === 'F12'
     ) {
-      log.info(`[Main Process] Blocked keyboard shortcut: ${input.key}`);
       event.preventDefault();
     }
   });
 
-  // Function to check if the URL is an authentication URL
-  function isAuthUrl(url) {
-    return url.startsWith(AUTH_URL_PREFIX);
-  }
+  // Setup authentication handlers for navigation and window opening
+  auth.setupAuthHandlers(mainWindow, persistentSession, TARGET_URL);
 
-  // Function to handle authentication window
-  function openAuthWindow(url) {
-    // Close any existing auth window
-    if (authWindow) {
-      authWindow.close();
-    }
-
-    // Create a small browser window for authentication
-    authWindow = new BrowserWindow({
-      width: 500, 
-      height: 600,
-      parent: mainWindow,
-      modal: true,
-      show: true,
-      webPreferences: {
-        nodeIntegration: false,
-        contextIsolation: true,
-        sandbox: true,
-        session: persistentSession, // Use the same persistent session for auth window
-      }
-    });
-
-    // Load the auth URL
-    authWindow.loadURL(url);
-    log.info(`Auth window opened with URL: ${url}`);
-
-    // Close the auth window automatically when navigation is complete
-    authWindow.webContents.on('did-navigate', (event, newUrl) => {
-      if (newUrl.includes('https://www.sesame.com/login')) {
-        log.info('Authentication completed, closing auth window');
-        
-        // Debugging: Log cookies after authentication
-        persistentSession.cookies.get({}).then(cookies => {
-          log.info(`Auth cookies after login: ${cookies.length} cookies found`);
-          cookies.forEach(cookie => {
-            log.info(`Cookie: ${cookie.name} for domain: ${cookie.domain}`);
-          });
-        });
-        
-        setTimeout(() => {
-          if (authWindow) {
-            authWindow.close();
-            authWindow = null;
-          }
-        }, 2000); // Give a slight delay to show success before closing
-      }
-    });
-
-    // Handle auth window closure
-    authWindow.on('closed', () => {
-      authWindow = null;
-    });
-  }
-
-  // Allow navigation to auth URLs or handle in separate window
-  mainWindow.webContents.on('will-navigate', (event, url) => {
-    log.info(`Navigation requested to: ${url}`);
-    
-    // Check if this is an authentication URL
-    if (isAuthUrl(url)) {
-      log.info(`Detected auth URL: ${url}`);
-      event.preventDefault();
-      openAuthWindow(url);
-    } 
-    // Allow navigation to the target URL
-    else if (url === TARGET_URL || url.startsWith(TARGET_URL.split('#')[0])) {
-      log.info(`Allowing navigation to target URL: ${url}`);
-      // Allow default navigation
-    }
-    // Block navigation to other URLs
-    else {
-      log.info(`Preventing navigation to: ${url}`);
-      event.preventDefault();
-    }
-  });
-
-  // Also handle new window events for links
-  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    log.info(`New window requested for: ${url}`);
-    
-    // Handle auth URLs in the authentication window
-    if (isAuthUrl(url)) {
-      openAuthWindow(url);
-      return { action: 'deny' }; // Prevent the default behavior
-    }
-    
-    // Block all other new windows
-    return { action: 'deny' };
-  });
-
-  // Optional: Handle 'did-fail-load'
   mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
       log.error(`Failed to load URL: ${validatedURL} - Error ${errorCode}: ${errorDescription}`);
-      // You could load a local error page here
-      // mainWindow.loadFile('error.html');
   });
 }
 
-// --- App Lifecycle ---
-
 app.whenReady().then(() => {
-  log.info('App is ready, creating window...');
+  globalShortcut.register('CommandOrControl+Alt+X', () => {
+    app.exit(0);
+  });
+
   createWindow();
 
   app.on('activate', () => {
-    // On macOS it's common to re-create a window in the app when the
-    // dock icon is clicked and there are no other windows open.
     if (BrowserWindow.getAllWindows().length === 0) {
-        log.info('App activated, creating window...');
-        createWindow();
+      createWindow();
     }
   });
 });
 
 app.on('window-all-closed', () => {
-  // Quit when all windows are closed, except on macOS.
   if (process.platform !== 'darwin') {
-    log.info('All windows closed, quitting app...');
     app.quit();
-  } else {
-      log.info('All windows closed on macOS, app remains active.');
   }
 });
 
-// Optional: Log when the app quits
 app.on('quit', () => {
-    log.info('Application quitting.');
+  log.info('Application quitting.');
 });
