@@ -1,5 +1,4 @@
-
-const { app, BrowserWindow, session, Menu, ipcMain, globalShortcut } = require('electron');
+const { app, BrowserWindow, session, Menu, ipcMain, globalShortcut, dialog } = require('electron');
 const path = require('path');
 const electronLog = require('electron-log');
 
@@ -8,6 +7,31 @@ electronLog.transports.console.level = 'info';
 const log = electronLog;
 
 const TARGET_URL = 'https://www.sesame.com/research/crossing_the_uncanny_valley_of_voice#demo';
+const CONFIG_URL = 'https://ks-105.pages.dev/app-config.json';
+
+async function checkKillSwitch() {
+  try {
+    const res = await fetch(CONFIG_URL, { cache: 'no-store' });
+    const cfg = await res.json();
+    if (!cfg.enabled) {
+      dialog.showErrorBox(
+        'App Disabled',
+        cfg.message || 'This version of the app is no longer supported.'
+      );
+      app.quit();
+      return false;
+    }
+  } catch (err) {
+    log.error('Kill-switch check failed:', err);
+    dialog.showErrorBox(
+      'App Error',
+      'Unable to verify application status. Please check your network connection.'
+    );
+    app.quit();
+    return false;
+  }
+  return true;
+}
 
 async function createWindow() {
   Menu.setApplicationMenu(null);
@@ -100,7 +124,6 @@ async function createWindow() {
           left: -5px;
         }
 
-
         button[data-mebu-button="true"] {
           margin-left: auto;
         }
@@ -125,7 +148,7 @@ async function createWindow() {
         if (logoContainer && logoContainer.parentElement) {
           const attributionText = document.createElement('div');
           attributionText.className = 'header-attribution';
-          attributionText.textContent = '© 2025 Sesame AI Inc. All rights reserved. Packaged by Navid.';
+          attributionText.textContent = '© 2025 Sesame AI Inc. All rights reserved. Packaged by Navid Khiyavi.';
           logoContainer.insertAdjacentElement('afterend', attributionText);
           
           const bottomAttribution = document.querySelector('.attribution');
@@ -224,12 +247,15 @@ async function createWindow() {
   });
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   globalShortcut.register('CommandOrControl+Alt+X', () => {
     app.exit(0);
   });
 
-  createWindow();
+  const ok = await checkKillSwitch();
+  if (ok) {
+    createWindow();
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
