@@ -1,0 +1,10 @@
+This product includes software developed by SesameAILabs (https://github.com/SesameAILabs/csm) under the Apache License, Version 2.0, and embeds the “Demo” section of Sesame’s voice AI at https://www.sesame.com/demo.
+
+Modifications and Additions:
+  • Wrapped the Sesame Research “Demo” webpage inside an Electron desktop application  
+    – The Electron app programmatically loads the Sesame demo URL in a BrowserWindow.  
+    – No modifications were made to the original CSM model code.  
+  • Added an “About” dialog in the app UI linking back to the original GitHub repo and license.  
+
+All original copyright, license, and attribution notices from the
+SesameAILabs/csm repository have been preserved in source files.
