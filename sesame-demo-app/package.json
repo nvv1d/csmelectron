@@ -45,40 +45,49 @@
     "webpack": "^5.99.8",
     "webpack-cli": "^5.1.4"
   },
-  "build": {
-    "appId": "com.sesame.voice.demo",
-    "productName": "Sesame AI Demo",
-    "directories": {
-      "output": "dist"
-    },
-    "files": [
-      "**/*",
-      "assets/**/*",
-      "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
-      "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
-      "!**/node_modules/*.d.ts",
-      "!**/node_modules/.bin",
-      "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}",
-      "!.editorconfig",
-      "!**/._*",
-      "!**/{.DS_Store,.git,.hg,.svn,CVS,RCS,SCCS,.gitignore,.gitattributes}",
-      "!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}",
-      "!**/{appveyor.yml,.travis.yml,circle.yml}",
-      "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}"
-    ],
-    "extraResources": [
-      {
-        "from": "./assets",
-        "to": "assets",
-        "filter": [
-          "**/*"
-        ]
-      }
-    ],
-    "licenseFiles": [
-      "LICENSE",
-      "NOTICE"
-    ],
+"build": {
+  "appId": "com.sesame.voice.demo",
+  "productName": "Sesame AI Demo",
+  "directories": {
+    "output": "dist"
+  },
+  "files": [
+    "**/*",
+    "assets/**/*",
+    "LICENSE",
+    "NOTICE",
+    "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
+    "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
+    "!**/node_modules/*.d.ts",
+    "!**/node_modules/.bin",
+    "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}",
+    "!.editorconfig",
+    "!**/._*",
+    "!**/{.DS_Store,.git,.hg,.svn,CVS,RCS,SCCS,.gitignore,.gitattributes}",
+    "!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}",
+    "!**/{appveyor.yml,.travis.yml,circle.yml}",
+    "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}"
+  ],
+  "extraResources": [
+    {
+      "from": "./assets",
+      "to": "assets",
+      "filter": ["**/*"]
+    }
+  ],
+  "win": {
+    "target": ["nsis"],
+      "icon": "assets/Square71x71Logo.scale-200.png"
+  },
+  "mac": {
+    "target": ["dmg"],
+    "icon": "assets/Square150x150Logo.scale-200.png"
+  },
+  "linux": {
+    "target": ["AppImage"],
+    "icon": "assets/Square310x310Logo.scale-200.png"
+  }
+}
     "win": {
       "target": [
         "nsis"
