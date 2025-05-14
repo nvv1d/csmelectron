@@ -1,4 +1,4 @@
-# Sesame Research Demo Application
+# Sesame AI Demo Application
 
 ## Overview
 This Electron-based desktop application provides a focused view of the Sesame Research webpage section for exploring voice interactions.
@@ -41,18 +41,26 @@ npm run package-linux  # For Linux
 
 ### Project Structure
 ```
-sesame-demo-app/
+
+csmelectron/
 │
-├── src/
-│   ├── index.html
-│   ├── renderer.js
-│   ├── preload.js
-│   ├── auth.js
-│   └── main.js
+├── sesame-demo-app/
+│   ├── assets/                # Static icons and manifest files
+│   ├── src/
+│   │   ├── index.html
+│   │   ├── renderer.js
+│   │   ├── preload.js
+│   │   ├── auth.js
+│   │   └── main.js
+│   ├── package.json
+│   ├── webpack.config.js
+│   ├── babel.config.js
+│   ├── README.md
+│   └── NOTICE
 │
-├── package.json
-├── webpack.config.js
-└── README.md
+├── README.md
+└── NOTICE
+
 ```
 
 ### Key Dependencies
@@ -67,3 +75,10 @@ The application automatically handles microphone permissions through Electron's 
 - Ensure all dependencies are installed correctly
 - Check console for any error messages
 - Verify system microphone settings
+
+## License & Attribution
+This application wraps and displays the Sesame Research “Demo” at https://www.sesame.com/demo.
+
+Core AI functionality is provided by the open‑source CSM model from SesameAILabs: https://github.com/SesameAILabs/csm (Apache 2.0).
+
+See the included LICENSE file for full Apache 2.0 text, and NOTICE for our attribution and change summary.
