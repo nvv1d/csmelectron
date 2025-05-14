@@ -78,9 +78,11 @@ The application automatically handles microphone permissions through Electron's 
 - Check console for any error messages
 - Verify system microphone settings
 
-## License & Attribution
-This application wraps and displays the Sesame Research “Demo” at https://www.sesame.com/demo.
+## Credits & License
+- This application wraps and displays the Sesame Research “Demo” at https://www.sesame.com/demo.
 
-Core AI functionality is provided by the open‑source CSM model from SesameAILabs: https://github.com/SesameAILabs/csm (Apache 2.0).
+- Core AI functionality is provided by the open‑source CSM model from SesameAILabs: https://github.com/SesameAILabs/csm (Apache 2.0).
 
-See the included LICENSE file for full Apache 2.0 text, and NOTICE for our attribution and change summary.
+- See the included LICENSE file for full Apache 2.0 text, and NOTICE for our attribution and change summary.
+
+- This Electron wrapper and packaging code is maintained at: nvv1d/csmelectron
