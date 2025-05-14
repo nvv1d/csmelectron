@@ -1,7 +1,7 @@
 {
   "name": "sesame-voice-demo",
   "version": "1.0.0",
-  "description": "Sesame AI Demo Application - Crossing the Uncanny Valley of Voice",
+  "description": "Sesame AI Demo Application - Crossing the Uncanny Valley of Voice. This Electron-based application displays the Sesame Research voice interaction demo from sesame.com.",
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
@@ -13,12 +13,23 @@
   "keywords": [
     "electron",
     "sesame",
-    "research",
+    "voice",
     "demo",
-    "voice"
+    "CSM",
+    "AI",
+    "speech",
+    "research"
   ],
-  "author": "nvv1d",
-  "license": "MIT",
+  "author": "nvv1d (based on work by SesameAILabs)",
+  "license": "Apache-2.0",
+  "homepage": "https://www.sesame.com/demo",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SesameAILabs/csm"
+  },
+  "bugs": {
+    "url": "https://github.com/SesameAILabs/csm/issues"
+  },
   "dependencies": {
     "electron-log": "^5.0.9"
   },
@@ -63,6 +74,10 @@
           "**/*"
         ]
       }
+    ],
+    "licenseFiles": [
+      "LICENSE",
+      "NOTICE"
     ],
     "win": {
       "target": [
