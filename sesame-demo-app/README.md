@@ -56,9 +56,11 @@ csmelectron/
 │   ├── webpack.config.js
 │   ├── babel.config.js
 │   ├── README.md
+│   ├── LICENSE
 │   └── NOTICE
 │
 ├── README.md
+├── LICENSE
 └── NOTICE
 
 ```
