@@ -1,7 +1,7 @@
 {
   "name": "sesame-voice-demo",
   "version": "1.0.0",
-  "description": "Sesame Voice Demo Application - Crossing the Uncanny Valley of Voice",
+  "description": "Sesame AI Demo Application - Crossing the Uncanny Valley of Voice",
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
@@ -36,7 +36,7 @@
   },
   "build": {
     "appId": "com.sesame.voice.demo",
-    "productName": "Sesame Voice Demo",
+    "productName": "Sesame AI Demo",
     "directories": {
       "output": "dist"
     },
