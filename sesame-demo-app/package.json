@@ -77,7 +77,7 @@
   ],
   "win": {
     "target": ["nsis"],
-      "icon": "assets/Square71x71Logo.scale-200.png"
+      "icon": "assets/Square310x310Logo.scale-200.png"
   },
   "mac": {
     "target": ["dmg"],
