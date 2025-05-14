@@ -21,7 +21,7 @@ async function createWindow() {
     autoHideMenuBar: true,
     frame: false,
     titleBarStyle: 'hidden',
-    icon: path.join(__dirname, '../assets/Square150x150Logo.scale-400.png'),
+    icon: path.join(__dirname, '../assets/Square310x310Logo.scale-400.png'),
     show: false,
     backgroundColor: '#FFFFFF',
     webPreferences: {
