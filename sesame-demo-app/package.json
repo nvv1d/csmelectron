@@ -1,110 +1,99 @@
 {
-  "name": "sesame-voice-demo",
-  "version": "1.0.0",
-  "description": "Sesame AI Demo Application - Crossing the Uncanny Valley of Voice. This Electron-based application displays the Sesame Research voice interaction demo from sesame.com.",
-  "main": "src/main.js",
-  "scripts": {
-    "start": "electron .",
-    "build": "webpack --mode production",
-    "package-win": "electron-builder --win",
-    "package-mac": "electron-builder --mac",
-    "package-linux": "electron-builder --linux"
-  },
-  "keywords": [
-    "electron",
-    "sesame",
-    "voice",
-    "demo",
-    "CSM",
-    "AI",
-    "speech",
-    "research"
-  ],
-  "author": "nvv1d (based on work by SesameAILabs)",
-  "license": "Apache-2.0",
-  "homepage": "https://www.sesame.com/demo",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/SesameAILabs/csm"
-  },
-  "bugs": {
-    "url": "https://github.com/SesameAILabs/csm/issues"
-  },
-  "dependencies": {
-    "electron-log": "^5.0.9"
-  },
-  "devDependencies": {
-    "@babel/core": "^7.27.1",
-    "@babel/preset-env": "^7.27.2",
-    "babel-loader": "^9.2.1",
-    "css-loader": "^6.11.0",
-    "electron": "^25.0.0",
-    "electron-builder": "^24.6.4",
-    "sharp": "^0.34.1",
-    "style-loader": "^3.3.4",
-    "webpack": "^5.99.8",
-    "webpack-cli": "^5.1.4"
-  },
-"build": {
-  "appId": "com.sesame.voice.demo",
-  "productName": "Sesame AI Demo",
-  "directories": {
-    "output": "dist"
-  },
-  "files": [
-    "**/*",
-    "assets/**/*",
-    "LICENSE",
-    "NOTICE",
-    "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
-    "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
-    "!**/node_modules/*.d.ts",
-    "!**/node_modules/.bin",
-    "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}",
-    "!.editorconfig",
-    "!**/._*",
-    "!**/{.DS_Store,.git,.hg,.svn,CVS,RCS,SCCS,.gitignore,.gitattributes}",
-    "!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}",
-    "!**/{appveyor.yml,.travis.yml,circle.yml}",
-    "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}"
-  ],
-  "extraResources": [
-    {
-      "from": "./assets",
-      "to": "assets",
-      "filter": ["**/*"]
-    }
-  ],
-  "win": {
-    "target": ["nsis"],
-      "icon": "assets/Square310x310Logo.scale-200.png"
-  },
-  "mac": {
-    "target": ["dmg"],
-    "icon": "assets/Square150x150Logo.scale-200.png"
-  },
-  "linux": {
-    "target": ["AppImage"],
-    "icon": "assets/Square310x310Logo.scale-200.png"
-  }
-}
-    "win": {
-      "target": [
-        "nsis"
-      ],
-      "icon": "assets/Square44x44Logo.targetsize-256.png"
+    "name": "sesame-voice-demo",
+    "version": "1.0.0",
+    "description": "Sesame AI Demo Application - Crossing the Uncanny Valley of Voice. This Electron-based application displays the Sesame Research voice interaction demo from sesame.com.",
+    "main": "src/main.js",
+    "scripts": {
+        "start": "electron .",
+        "build": "webpack --mode production",
+        "package-win": "electron-builder --win",
+        "package-mac": "electron-builder --mac",
+        "package-linux": "electron-builder --linux"
     },
-    "mac": {
-      "target": [
-        "dmg"
-      ],
-      "icon": "assets/Square150x150Logo.scale-200.png"
+    "keywords": [
+        "electron",
+        "sesame",
+        "voice",
+        "demo",
+        "CSM",
+        "AI",
+        "speech",
+        "research"
+    ],
+    "author": "nvv1d (based on work by SesameAILabs)",
+    "license": "Apache-2.0",
+    "homepage": "https://www.sesame.com/demo",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/SesameAILabs/csm"
     },
-    "linux": {
-      "target": [
-        "AppImage"
-      ],
-      "icon": "assets/Square310x310Logo.scale-200.png"
+    "bugs": {
+        "url": "https://github.com/SesameAILabs/csm/issues"
+    },
+    "dependencies": {
+        "electron-log": "^5.0.9"
+    },
+    "devDependencies": {
+        "@babel/core": "^7.27.1",
+        "@babel/preset-env": "^7.27.2",
+        "babel-loader": "^9.2.1",
+        "css-loader": "^6.11.0",
+        "electron": "^25.0.0",
+        "electron-builder": "^24.6.4",
+        "sharp": "^0.34.1",
+        "style-loader": "^3.3.4",
+        "webpack": "^5.99.8",
+        "webpack-cli": "^5.1.4"
+    },
+    "build": {
+        "appId": "com.sesame.voice.demo",
+        "productName": "Sesame AI Demo",
+        "directories": {
+            "output": "dist"
+        },
+        "files": [
+            "**/*",
+            "assets/**/*",
+            "LICENSE",
+            "NOTICE",
+            "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
+            "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
+            "!**/node_modules/*.d.ts",
+            "!**/node_modules/.bin",
+            "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}",
+            "!.editorconfig",
+            "!**/._*",
+            "!**/{.DS_Store,.git,.hg,.svn,CVS,RCS,SCCS,.gitignore,.gitattributes}",
+            "!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}",
+            "!**/{appveyor.yml,.travis.yml,circle.yml}",
+            "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}"
+        ],
+        "extraResources": [
+            {
+                "from": "./assets",
+                "to": "assets",
+                "filter": [
+                    "**/*"
+                ]
+            }
+        ],
+        "win": {
+            "target": [
+                "nsis"
+            ],
+            "icon": "assets/Square310x310Logo.scale-200.png"
+        },
+        "mac": {
+            "target": [
+                "dmg"
+            ],
+            "icon": "assets/Square150x150Logo.scale-200.png"
+        },
+        "linux": {
+            "target": [
+                "AppImage"
+            ],
+            "icon": "assets/Square310x310Logo.scale-200.png"
+        }
     }
-  }
 }
