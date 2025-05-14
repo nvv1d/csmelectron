@@ -1,7 +1,7 @@
+
 const { app, BrowserWindow, session, Menu, ipcMain, globalShortcut } = require('electron');
 const path = require('path');
 const electronLog = require('electron-log');
-const auth = require('./auth');
 
 electronLog.transports.file.level = 'info';
 electronLog.transports.console.level = 'info';
@@ -11,8 +11,7 @@ const TARGET_URL = 'https://www.sesame.com/research/crossing_the_uncanny_valley_
 
 async function createWindow() {
   Menu.setApplicationMenu(null);
-  const persistentSession = auth.createPersistentSession(app, session);
-
+  
   const mainWindow = new BrowserWindow({
     width: 720,
     height: 530,
@@ -32,7 +31,6 @@ async function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       webviewTag: false,
       devTools: process.env.NODE_ENV === 'development',
-      session: persistentSession,
     },
     scrollBounce: false,
   });
@@ -47,15 +45,6 @@ async function createWindow() {
     }
     app.exit(0);
   });
-
-  // Remove the minimize prevention to allow normal minimize behavior
-  // This will prevent the black screen issue when minimizing
-
-  // Setup security and permission handlers
-  auth.setupSecurityHandlers(persistentSession, mainWindow);
-  
-  // Check if user is already authenticated
-  const hasAuthCookies = await auth.checkAuthentication(persistentSession);
 
   mainWindow.once('ready-to-show', () => {
     setTimeout(() => {
@@ -136,7 +125,7 @@ async function createWindow() {
         if (logoContainer && logoContainer.parentElement) {
           const attributionText = document.createElement('div');
           attributionText.className = 'header-attribution';
-          attributionText.textContent = '© 2025 Sesame AI Inc. All rights reserved. Packaged by Navid.';
+          attributionText.textContent = '© 2025 Sesame AI Inc. All rights reserved. Packaged by Navid.';
           logoContainer.insertAdjacentElement('afterend', attributionText);
           
           const bottomAttribution = document.querySelector('.attribution');
@@ -229,9 +218,6 @@ async function createWindow() {
       event.preventDefault();
     }
   });
-
-  // Setup authentication handlers for navigation and window opening
-  auth.setupAuthHandlers(mainWindow, persistentSession, TARGET_URL);
 
   mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
       log.error(`Failed to load URL: ${validatedURL} - Error ${errorCode}: ${errorDescription}`);
